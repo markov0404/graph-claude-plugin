@@ -8,5 +8,5 @@
 - Condicionales de test con `[ ... ] || { echo "FAIL ..."; exit 1; }`, no `if [ ! ... ]`.
 - Commits: `tipo: descripción` — tipo `feat`/`fix`/`test`/`GRAPH` y descripción corta en español imperativo, con contexto tras ` — ` si hace falta.
 - Sin contadores de intentos en ningún proceso: la salida es por criterios cumplidos; estancamiento → escalada (diagnóstico → fan-out de perspectivas → subir tier).
-- Bitácoras como tablas markdown con campos obligatorios (task record: Mini-spec / Diario / Resultado).
+- Bitácoras como tablas markdown con campos obligatorios (task record: Mini-spec / Diario / Verificación final / Resultado).
 - Tests headless con `--dangerously-skip-permissions` SOLO dentro de fixtures desechables de `tests/build/`.
