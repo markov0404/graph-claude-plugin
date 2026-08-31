@@ -19,4 +19,15 @@ El orquestador: 7 reglas duras + 8 fases (0 flags/precondiciones, 1 mini-spec co
 `test-hook.sh` (2 casos del hook, TDD), `make-fixtures.sh` (genera fixture-js y fixture-py desechables en `tests/build/`, gitignoreado), `run-scenarios.sh` (E1 init genera `.graph/` verificado; E2 gate bloquea headless sin mutación ni task record prematuro; E3 `--quick` crea base parcial sin mutar código), `scenarios.md` (I1-I7 interactivos: convergencia M, preflight, tier forzado, grafo L, presupuesto, hook, tier S). Cobertura solo-interactiva: escalada, Workflow real, presupuesto.
 
 ## Documentación (`docs/superpowers/`)
-`specs/2026-08-31-graph-plugin-design.md` (autoridad de diseño) y `plans/2026-08-31-graph-plugin.md` (plan de implementación en 8 tareas, ya ejecutado).
+`specs/2026-08-31-graph-plugin-design.md` (autoridad de diseño), `plans/2026-08-31-graph-plugin.md` (plan de implementación en 8 tareas, ejecutado), `specs/2026-08-31-graph-mejoras-sota-design.md` (ronda 1 SOTA, implementada) y `specs/2026-08-31-backlog-ronda-2.md` (pendientes). Registro histórico: no se edita retroactivamente (C7).
+
+## Herramientas propias (`tools/`)
+`symbol-map.sh` — extractor de símbolos de nivel superior por archivo (bash+awk, cero dependencias, política de tooling C5): JS/TS, Python y bash; conservador (estado de paridad para strings/docstrings: jamás inventa); testeado por `tests/test-symbol-map.sh` (4 casos). Lo consumen las Fases 2/4 de init para la sección de símbolos de este archivo.
+
+## Símbolos
+<!-- symbol-map:start -->
+## Símbolos por archivo
+_(generado automáticamente por tools/symbol-map.sh — no editar a mano esta sección)_
+
+- `tools/symbol-map.sh`: in_list, join_comma, extract_js, extract_py, extract_sh
+<!-- symbol-map:end -->
