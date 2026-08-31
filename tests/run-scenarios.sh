@@ -22,6 +22,9 @@ echo "— E2: el gate bloquea en headless (sin mutación fuera de .graph/)"
 grep -qiE "gate|apruéb|aprobar" /tmp/graph-e2.out || { echo "FAIL E2: no presentó el gate"; exit 1; }
 mut=$(cd "$JS" && git status --porcelain | grep -v '\.graph/' || true)
 [ -z "$mut" ] || { echo "FAIL E2: mutó el repo antes del OK: $mut"; exit 1; }
+if ls "$JS/.graph/tasks" 2>/dev/null | grep -qv '^README\.md$'; then
+  echo "FAIL E2: task record creado antes del OK"; exit 1
+fi
 
 echo "— E3: --quick sin .graph/ crea base parcial y no muta código"
 QT=$(mktemp -d); cp -r "$JS/src" "$JS/test" "$JS/package.json" "$QT/"

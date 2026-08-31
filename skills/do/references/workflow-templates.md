@@ -36,6 +36,7 @@ const resultados = await pipeline(
 const rechazadas = resultados.filter(Boolean).filter(r => !r.veredicto || !r.veredicto.aprobado)
 return { resultados, rechazadas }
 // El orquestador corrige las rechazadas (loop de tier M) y re-verifica.
+// Sintetizar = el orquestador mergea las ramas de los worktrees aprobados al repo, resuelve conflictos y corre la verificación integrada (fase 7 del skill do).
 ```
 
 ## 2. Investigación en abanico

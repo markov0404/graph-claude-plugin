@@ -22,7 +22,7 @@ Todo lo visible al usuario va en español.
 
 ## Fase 0 — Precondiciones
 
-- Separa del final del pedido los flags: `--tier S|M|L` (alias: `--quick`=S, `--full`=L), `--budget <n>`. El resto es el pedido.
+- Separa del final del pedido los flags: `--tier S|M|L` (alias: `--quick`=S, `--full`=L), `--budget <tokens>`. El resto es el pedido.
 - Si NO existe `.graph/`: ofrece correr `/graph:init` primero (AskUserQuestion). Excepción con `--quick`: haz un escaneo mínimo inline (estructura + comando de test si es evidente), escribe un `.graph/` parcial cuyo `INDEX.md` empiece con `> Estado: parcial — correr /graph:init`, y sigue. Esta escritura de precondición ocurre siempre, incluso en modo no interactivo: no es la "ejecución" del pedido que bloquean las reglas duras 1 y 7 (esas reglas protegen el repo del usuario, no impiden la bitácora `.graph/` propia del sistema).
 - Lee `.graph/INDEX.md` completo si el hook no lo inyectó ya.
 
@@ -92,6 +92,8 @@ final, sección Mini-spec aprobada llena. Es la bitácora de la tarea.
 
 Ejecuta directo con el paquete de contexto: una pasada + verificación de
 todos los criterios y anti-criterios.
+
+Si la verificación falla, pasa al loop convergente de tier M y anótalo en el task record; si el tier S fue forzado por el usuario, aplica la regla dura 4 (pregunta antes de subir).
 
 ### Tier M — loop convergente
 
