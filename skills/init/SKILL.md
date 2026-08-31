@@ -89,6 +89,7 @@ Crea los archivos con EXACTAMENTE estos formatos (rellenando con lo escaneado):
 **Qué es:** <1-2 frases>
 **Stack:** <lenguajes y frameworks clave>
 **Comandos clave:** test: `<cmd>` · build: `<cmd o "n/a">` · lint: `<cmd o "n/a">` (detalle en commands.md)
+**Testing:** <cobertura en 1 línea: qué está automatizado y verificado (con fecha), qué es solo interactivo/manual, o "sin tests" si el repo no tiene> (detalle en commands.md y map.md)
 **Top-5 archivos/módulos:**
 1. `<ruta>` — <por qué importa>
 (hasta 5)
