@@ -15,7 +15,7 @@ Para: feature/refactor con subtareas independientes que mutan archivos.
 export const meta = {
   name: 'graph-implementacion',
   description: 'Implementa subtareas en paralelo con verificación adversarial',
-  phases: [{ title: 'Implementar' }, { title: 'Verificar' }, { title: 'Sintetizar' }],
+  phases: [{ title: 'Implementar' }, { title: 'Verificar' }],
 }
 const SUBTAREAS = args.subtareas  // [{id, prompt, criterios}]
 // Cada st.prompt DEBE pedir al implementador terminar su resumen con la ruta de su worktree y su rama; el verificador verifica EN ESA RUTA.
@@ -33,9 +33,11 @@ const resultados = await pipeline(
     { label: `verif:${st.id}`, phase: 'Verificar', schema: VEREDICTO }
   ).then(v => ({ id: st.id, resumen: res, veredicto: v }))
 )
-const rechazadas = resultados.filter(Boolean).filter(r => !r.veredicto || !r.veredicto.aprobado)
-return { resultados, rechazadas }
-// El orquestador corrige las rechazadas (loop de tier M) y re-verifica.
+const ok = resultados.filter(Boolean)
+const rechazadas = ok.filter(r => !r.veredicto || !r.veredicto.aprobado)
+const perdidas = SUBTAREAS.filter(st => !ok.some(r => r.id === st.id)).map(st => st.id)
+return { resultados: ok, rechazadas, perdidas }
+// El orquestador corrige las rechazadas (loop de tier M) y re-verifica; trata las perdidas como rechazadas.
 // Sintetizar = el orquestador mergea las ramas de los worktrees aprobados al repo, resuelve conflictos y corre la verificación integrada (fase 7 del skill do).
 ```
 
@@ -65,7 +67,7 @@ const porAngulo = await pipeline(
           `Si no encuentras sustento independiente, sostenida=false.`,
       { phase: 'Verificar', schema: VERDAD }).then(v => ({ ...h, ...v }))))
 )
-return { confirmados: porAngulo.filter(Boolean).flat().filter(h => h.sostenida) }
+return { confirmados: porAngulo.filter(Boolean).flat().filter(Boolean).filter(h => h.sostenida) }
 ```
 
 ## 3. Auditoría hasta agotar
@@ -73,5 +75,14 @@ return { confirmados: porAngulo.filter(Boolean).flat().filter(h => h.sostenida) 
 Para: "revisa/audita todo X" sin tamaño conocido. Usa loop-until-dry: rondas
 de buscadores hasta que 2 rondas seguidas no aporten nada nuevo, con dedup
 contra TODO lo visto y veredicto por mayoría de 3 refutadores por hallazgo.
-Estructura: igual a la plantilla 2, envuelta en `while (secas < 2)` con un
-`Set` de claves vistas. Sin topes de cantidad: se agota, no se corta.
+Estructura: igual a la plantilla 2 PERO con la etapa Verificar reemplazada:
+cada hallazgo fresco va a 3 refutadores en paralelo (`parallel`) y sobrevive con >=2
+sostenida=true; todo envuelto en `while (secas < 2)` relanzando los mismos
+ANGULOS por ronda; `Set` de claves vistas (clave = afirmación normalizada)
+que acumula TODO lo emitido, refutados incluidos — dedupear solo contra
+confirmados hace que el loop nunca seque. Sin topes de cantidad: se agota,
+no se corta. Con --budget activo, pásalo en args y añade al while la
+condición `(!args.presupuesto || budget.spent() < args.presupuesto)`,
+devolviendo lo acumulado al cortar para que el orquestador pause y
+pregunte (sección Presupuesto del skill). El único corte legítimo es ese
+presupuesto explícito del usuario; nunca topes de cantidad inventados.

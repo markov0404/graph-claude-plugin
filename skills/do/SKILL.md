@@ -14,7 +14,7 @@ Todo lo visible al usuario va en español.
 
 1. **Nada se ejecuta antes del OK del gate.** "Ejecutar" = mutar el repo o producir efectos externos. Las fases 1-4 son de solo lectura (despachar agentes de análisis está permitido).
 2. **Sin contadores de intentos.** El loop sale únicamente por criterios cumplidos. El estancamiento dispara escalada, jamás parada.
-3. **La maquinaria escala sola; el alcance no.** Subir de tier es autónomo mientras los criterios y anti-criterios aprobados no cambien. Si el alcance real resulta otro, se vuelve al gate.
+3. **La maquinaria escala sola; el alcance no.** Subir de tier es autónomo mientras los criterios y anti-criterios aprobados no cambien. Si el alcance real resulta otro, se vuelve al gate. El tier es un trinquete de una sola vía: sube solo, nunca se degrada a mitad de tarea; si la tarea resulta más simple de lo aprobado, se termina en el tier aprobado.
 4. **Tier forzado por el usuario nunca se sobrepasa en silencio**: si te quedas estancado en un tier forzado, pregunta.
 5. **La parada sin converger solo la decide el usuario.** Bloqueo humano-dependiente en runtime → pregunta con AskUserQuestion y continúa con la respuesta.
 6. **Evidencia siempre.** Ningún criterio se declara cumplido sin ejecutar su método de verificación y citar el output real. Prohibido "debería funcionar".
@@ -23,7 +23,7 @@ Todo lo visible al usuario va en español.
 ## Fase 0 — Precondiciones
 
 - Separa del final del pedido los flags: `--tier S|M|L` (alias: `--quick`=S, `--full`=L), `--budget <tokens>`. El resto es el pedido.
-- Si NO existe `.graph/`: ofrece correr `/graph:init` primero (AskUserQuestion). Excepción con `--quick`: haz un escaneo mínimo inline (estructura + comando de test si es evidente), escribe un `.graph/` parcial cuyo `INDEX.md` empiece con `> Estado: parcial — correr /graph:init`, y sigue. Esta escritura de precondición ocurre siempre, incluso en modo no interactivo: no es la "ejecución" del pedido que bloquean las reglas duras 1 y 7 (esas reglas protegen el repo del usuario, no impiden la bitácora `.graph/` propia del sistema).
+- Si NO existe `.graph/`: ofrece correr `/graph:init` primero (AskUserQuestion). Excepción con `--quick`: haz un escaneo mínimo inline (estructura + comando de test si es evidente), escribe un `.graph/` parcial (mínimo `INDEX.md`; si el comando de test es evidente, también `commands.md` con verificado `no — detectado sin ejecutar`) cuyo `INDEX.md` incluya al inicio, tras el heading `# GRAPH · <proyecto>`, la línea `> Actualizado: <YYYY-MM-DD> · Estado: parcial — correr /graph:init`, y sigue. Esta escritura de precondición ocurre siempre, incluso en modo no interactivo: no es la "ejecución" del pedido que bloquean las reglas duras 1 y 7 (esas reglas protegen el repo del usuario, no impiden la bitácora `.graph/` propia del sistema). En modo no interactivo sin `--quick`: no puedes preguntar — reporta que falta `.graph/` y termina.
 - Lee `.graph/INDEX.md` completo si el hook no lo inyectó ya.
 
 ## Fase 1 — Mini-spec (capa prompt)
@@ -40,11 +40,11 @@ Redacta a partir del pedido + INDEX.md:
 - **Anti-criterios**: qué NO tocar / NO romper / NO cambiar (API pública, comportamiento existente, archivos vetados), cada uno con su método de comprobación.
 
 Solo si hay ambigüedad que cambie el diseño: máximo 1-2 preguntas
-(AskUserQuestion) AHORA. Lo demás se decide con criterio y se muestra en el gate.
+(AskUserQuestion) AHORA. (En modo no interactivo no se pregunta: decide con criterio y déjalo visible en la pantalla del gate.) Lo demás se decide con criterio y se muestra en el gate.
 
 ## Fase 2 — Contexto (capa context)
 
-- Lee `.graph/map.md`, `conventions.md`, `commands.md` y los registros de `.graph/tasks/` de tareas similares — incluidos los fallidos (qué NO funcionó ya).
+- Lee los que existan de `.graph/map.md`, `conventions.md`, `commands.md` y los registros de `.graph/tasks/` de tareas similares — incluidos los fallidos (qué NO funcionó ya) (con base parcial pueden faltar).
 - Despacha 1-3 agentes Explore SOLO hacia las zonas que la mini-spec implica. Nada de exploración general: el mapa ya existe.
 - Produce el **paquete de contexto**: archivos implicados, patrones a seguir, riesgos, aprendizaje previo relevante.
 
@@ -120,20 +120,20 @@ sintetizado (si la síntesis no cumple criterios, se itera).
 
 ### Presupuesto
 
-Con `--budget <n>`: revisa el gasto al cerrar cada iteración/fase; al
+Con `--budget <tokens>`: revisa el gasto al cerrar cada iteración/fase; al
 agotarse, pausa, presenta estado + evidencia de avance y pregunta: ampliar o
 abortar. Sin flag: sin tope, convergencia manda. Nunca inventes topes.
 
 ## Fase 7 — Verificación final
 
-Tabla en el task record y en tu resumen: criterio → método → comando/
+Tabla en la sección ## Verificación final del task record y en tu resumen: criterio → método → comando/
 procedimiento ejecutado → evidencia (output real citado) → ✅/❌. Lo mismo
 para anti-criterios (intactos). Si algo está en ❌, NO estás en fase 7:
 sigues en fase 6.
 
 ## Fase 8 — Cierre
 
-1. Completa el task record: resultado, evidencia final, aprendizajes. Si se abortó: causa exacta y qué se descartó (vale tanto como un éxito).
+1. Completa el task record: resultado, evidencia final, aprendizajes. Registra también las preguntas tardías surgidas en runtime (regla dura 5) y qué debió detectar el preflight: su frecuencia es la métrica de calidad del preflight. Si se abortó: causa exacta y qué se descartó (vale tanto como un éxito).
 2. ¿La tarea reveló algo estructural? → actualiza `map.md` / `conventions.md` / `decisions.md`, respetando el formato existente de cada archivo.
 3. ¿Cambió algo de la pantalla principal (stack, comandos, top-5)? → actualiza `INDEX.md`.
 4. ¿Algún comando de `commands.md` falló en uso? → corrígelo ahí (auto-reparación).
@@ -155,8 +155,13 @@ sigues en fase 6.
 | iteración | qué se hizo | diagnóstico | resultado |
 |---|---|---|---|
 
+## Verificación final
+| criterio/anti-criterio | método | comando/procedimiento ejecutado | evidencia | ✅/❌ |
+|---|---|---|---|
+
 ## Resultado
 - Estado: convergió | abortado por usuario | reescopado
 - Evidencia final:
 - Aprendizajes:
+- Preguntas tardías (runtime): <ninguna | cuáles y por qué el preflight no las vio>
 ```

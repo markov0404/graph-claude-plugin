@@ -16,10 +16,14 @@ actualización de `INDEX.md` y pregunta con AskUserQuestion: refrescar todo /
 refrescar solo lo desactualizado / cancelar. NUNCA arrases `.graph/` sin
 preguntar. En modo no interactivo sin "refresh": reporta que ya existe y termina.
 
-**Modo no interactivo** (sin usuario que pueda responder): omite todas las
-preguntas de este skill — en fase 5 imprime el resumen sin esperar
-correcciones, y en fase 6 aplica el default (commitear `.graph/`)
-registrándolo en `decisions.md`.
+"Solo lo desactualizado" = corre igual las fases 2-3 y actualiza únicamente
+los archivos cuyo contenido contradiga el estado actual del repo, dejando el
+resto intacto.
+
+**Modo no interactivo** (sin usuario que pueda responder): omite las
+preguntas de las fases 5 y 6 (la fase 1 ya define su propio comportamiento no
+interactivo): en fase 5 imprime el resumen sin esperar correcciones, y en
+fase 6 aplica el default (commitear `.graph/`) registrándolo en `decisions.md`.
 
 ## Fase 2 — Escaneo paralelo (solo lectura)
 
@@ -45,6 +49,12 @@ Toma los candidatos a build/test/lint de la fase 2 y EJECÚTALOS uno a uno:
 - Riesgoso o largo (deploy, migraciones, publish) → NO lo corras; entra como "no verificado (riesgoso)".
 
 ## Fase 4 — Generar `.graph/`
+
+En refresh: regenera solo `INDEX.md`, `map.md`, `conventions.md` y
+`commands.md`. `decisions.md` y `tasks/` son historial acumulado: si ya
+existen, NUNCA se regeneran ni se borran — solo agrega a `decisions.md` una
+fila registrando el refresh (en un arranque sin `.graph/` previo se crean
+normalmente).
 
 Crea los archivos con EXACTAMENTE estos formatos (rellenando con lo escaneado):
 

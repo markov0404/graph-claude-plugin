@@ -1,6 +1,6 @@
 # Escenarios interactivos GRAPH
 
-Correr en una sesión interactiva: `cd tests/build/fixture-py && claude --plugin-dir <ruta-al-repo>/graph-plugin`
+Correr en una sesión interactiva: `cd tests/build/fixture-py && claude --plugin-dir <ruta-al-clon>`
 (antes: `tests/make-fixtures.sh`; en fixture-py correr primero `/graph:init`).
 
 ## I1 — Tier M converge sin contadores

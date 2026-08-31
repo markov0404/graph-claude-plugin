@@ -6,8 +6,7 @@
     {
       "name": "graph",
       "source": "./",
-      "description": "Sistema de escalado por capas con conocimiento acumulativo por repo",
-      "version": "0.1.0"
+      "description": "Sistema de escalado por capas con conocimiento acumulativo por repo"
     }
   ]
 }
