@@ -93,6 +93,30 @@ la línea `**En curso:** <slug> (tier <X>, desde <YYYY-MM-DD>)` (<X> = el tier
 ya aprobado en el gate). Todo commit que produzcas para esta tarea lleva el
 trailer `GRAPH-Task: <slug>` (navegable después con `git log --grep "GRAPH-Task: <slug>"`).
 
+Acto seguido, en la misma creación del task record, registra en su tabla
+`## Efectos` el **efecto #0**: la línea base git del working tree — `git
+stash create` (o, si el árbol está limpio, el `HEAD` actual directamente; sin
+mover `HEAD` en ningún caso) — con inversa "restaurar desde la base los paths
+tocados por el intento Y borrar los archivos nuevos no rastreados que el
+intento haya creado (la base de `git stash create` NO los captura)" y estado
+`activo`. La inversa del efecto #0 JAMÁS toca `.graph/` — el task record, el
+INDEX y toda la bitácora del sistema quedan excluidos de la restauración
+(C4: la evidencia de la escalada sobrevive a la reversión que documenta).
+Los efectos de archivo dentro del repo quedan cubiertos por este efecto #0
+vía git más la limpieza de no-rastreados — NO se listan uno a uno.
+
+**Efectos extra-git** (todo lo que quede fuera del alcance de git: comando
+con efectos laterales, llamada externa, archivo fuera del repo): se registran
+en la tabla `## Efectos` ANTES de ejecutarlos, con su inversa concreta y
+estado `activo`. Si la inversa no es expresable, el efecto se marca
+`irreversible` — y si era previsible, debió aparecer en el preflight/gate; si
+aparece imprevisto en runtime, trátalo como pregunta tardía (regla dura 5)
+ANTES de ejecutarlo, nunca después.
+
+Los efectos son estrictamente post-gate: las fases 1-4 no producen ni
+registran efectos, siguen siendo de solo lectura (regla dura 1). La tabla con
+solo el efecto #0 es el caso normal de una tarea que no tocó nada extra-git.
+
 ### Tier S
 
 Ejecuta directo con el paquete de contexto: una pasada + verificación de
@@ -110,9 +134,9 @@ Repite hasta converger:
 2. Verifica TODOS los criterios con sus métodos y TODOS los anti-criterios.
 3. Anota en el diario del task record: `iteración → qué se hizo → diagnóstico de cada fallo → resultado`.
 4. **Estancamiento** = el diario muestra el mismo criterio fallando por la misma causa raíz que la iteración anterior. También hay estancamiento si el diario registra la misma acción con el mismo resultado en dos iteraciones consecutivas — esa repetición literal dispara la escalada de inmediato, sin esperar el juicio de "misma causa". En duda, pide a un agente independiente comparar los dos diagnósticos. Estancado → escalada EN ORDEN:
-   a. **Diagnóstico**: agente dedicado SOLO a explicar la causa raíz (con systematic-debugging si está disponible); tiene prohibido proponer el fix.
+   a. **Diagnóstico**: agente dedicado SOLO a explicar la causa raíz (con systematic-debugging si está disponible); tiene prohibido proponer el fix. Además marca cada efecto `activo` de la tabla Efectos del intento como `revertir` (default) o `conservar` (trabajo válido que el tier nuevo aprovecha, con una frase de porqué). La marca es transitoria y se anota en el DIARIO, no en la columna `estado` (que solo admite su enum): el estado cambia a `revertido`/`conservado` recién cuando la escalada ejecuta la decisión.
    b. **Fan-out de perspectivas**: 2-3 agentes en paralelo — uno replantea el enfoque, uno cuestiona el diseño, uno audita si el criterio/test está mal formulado.
-   c. **Subir tier a L** — autónomo si el tier no fue forzado; si fue forzado, pregunta (regla dura 4).
+   c. **Subir tier a L** — autónomo si el tier no fue forzado; si fue forzado, pregunta (regla dura 4). Antes de arrancar el tier nuevo, ejecuta las inversas de los efectos marcados `revertir` en orden LIFO (el efecto #0 al final); cada uno pasa a estado `revertido` y queda anotado en el diario. Los marcados `conservar` pasan a estado `conservado`. El tier nuevo arranca con el estado de efectos declarado explícitamente, nunca heredado a ciegas.
 5. Si descubres que el alcance aprobado ya no describe la tarea (complejidad de alcance, no de convergencia): STOP → vuelve a la fase 5 con la mini-spec corregida, reutilizando todo lo explorado.
 
 ### Tier L — grafo
@@ -142,12 +166,12 @@ sigues en fase 6.
 
 ## Fase 8 — Cierre
 
-1. Completa el task record: resultado, evidencia final, aprendizajes, y la lista de commits de la tarea (hash corto + subject, vía `git log --grep "GRAPH-Task: <slug>"`) en la sección Resultado. Registra también las preguntas tardías surgidas en runtime (regla dura 5) y qué debió detectar el preflight: su frecuencia es la métrica de calidad del preflight. Si se abortó: causa exacta y qué se descartó (vale tanto como un éxito).
+1. Completa el task record: resultado, evidencia final, amenazas a la validez, aprendizajes, y la lista de commits de la tarea (hash corto + subject, vía `git log --grep "GRAPH-Task: <slug>"`) en la sección Resultado. Registra también las preguntas tardías surgidas en runtime (regla dura 5) y qué debió detectar el preflight: su frecuencia es la métrica de calidad del preflight. Si se abortó: causa exacta y qué se descartó (vale tanto como un éxito); si al abortar quedan efectos en estado `activo` en la tabla Efectos, ofrece (AskUserQuestion) ejecutar sus inversas pendientes en orden LIFO antes de cerrar el record, y registra el resultado (ejecutadas → `revertido`; declinadas → quedan `activo` con la razón). Si la tarea CONVERGE, los efectos aún `activo` pasan a `conservado` — el trabajo es el entregable; ningún record cerrado queda con efectos `activo`. Llena "Amenazas a la validez" con honestidad: qué se midió y qué no, corrida única vs repetida, entorno único, qué quedó sin comparación controlada — **prohibido escribir "ninguna" sin justificar explícitamente** por qué la evidencia es completa.
 2. Elimina de `.graph/INDEX.md` la línea `**En curso:** <slug> ...` de esta tarea — SIEMPRE, converja o se aborte.
 3. ¿La tarea reveló algo estructural? → actualiza `map.md` / `conventions.md` / `decisions.md`, respetando el formato existente de cada archivo.
 4. ¿Cambió algo de la pantalla principal (stack, comandos, top-5)? → actualiza `INDEX.md`.
 5. ¿Algún comando de `commands.md` falló en uso? → corrígelo ahí (auto-reparación).
-6. Resume al usuario: qué se entregó, con qué evidencia, qué aprendió el sistema.
+6. Resume al usuario: qué se entregó, con qué evidencia (y sus amenazas a la validez), qué aprendió el sistema.
 
 ## Plantilla del task record
 
@@ -161,17 +185,24 @@ sigues en fase 6.
 - Anti-criterios (con método):
 - Tier: <elegido|forzado> — porqué:
 
+## Efectos
+| # | efecto | inversa | estado |
+|---|---|---|---|
+
+(estado ∈ `activo` · `revertido` · `conservado` · `irreversible`)
+
 ## Diario
 | iteración | qué se hizo | diagnóstico | resultado |
 |---|---|---|---|
 
 ## Verificación final
 | criterio/anti-criterio | método | comando/procedimiento ejecutado | evidencia | ✅/❌ |
-|---|---|---|---|
+|---|---|---|---|---|
 
 ## Resultado
 - Estado: en ejecución (transitorio, solo mientras la Fase 6-7 corre) | convergió | abortado por usuario | reescopado
 - Evidencia final:
+- Amenazas a la validez: <qué se midió y qué no; evidencia de corrida única vs repetida; entorno único; qué quedó sin comparación controlada>
 - Commits: <hash-corto> <subject> (uno por línea) | ninguno
 - Aprendizajes:
 - Preguntas tardías (runtime): <ninguna | cuáles y por qué el preflight no las vio>

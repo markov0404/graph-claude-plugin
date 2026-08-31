@@ -2,12 +2,13 @@
 # Test de tools/symbol-map.sh: símbolos conocidos en fixtures reales + caso sin cobertura.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+FIXDIR="${GRAPH_FIXTURES_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/graph-plugin/fixtures}"
 TOOL="$ROOT/tools/symbol-map.sh"
 
 "$ROOT/tests/make-fixtures.sh" > /dev/null
 
-JS="$ROOT/tests/build/fixture-js"
-PY="$ROOT/tests/build/fixture-py"
+JS="$FIXDIR/fixture-js"
+PY="$FIXDIR/fixture-py"
 
 [ -x "$TOOL" ] || { echo "FAIL: no existe o no es ejecutable $TOOL"; exit 1; }
 

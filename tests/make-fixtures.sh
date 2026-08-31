@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Genera repos fixture desechables en tests/build/ (gitignoreado). Idempotente.
+# Genera repos fixture desechables fuera del árbol del repo (ver GRAPH_FIXTURES_DIR). Idempotente.
 set -euo pipefail
-BASE="$(cd "$(dirname "$0")" && pwd)/build"
-rm -rf "$BASE"; mkdir -p "$BASE"
+FIXDIR="${GRAPH_FIXTURES_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/graph-plugin/fixtures}"
+rm -rf "$FIXDIR"; mkdir -p "$FIXDIR"
 
-JS="$BASE/fixture-js"
+JS="$FIXDIR/fixture-js"
 mkdir -p "$JS/src" "$JS/test"
 cat > "$JS/package.json" <<'EOF'
 {
@@ -30,7 +30,7 @@ test('total suma precio por cantidad', () => {
 EOF
 (cd "$JS" && git init -qb main && git add -A && git -c user.email=fx@fx -c user.name=fx commit -qm "fixture inicial")
 
-PY="$BASE/fixture-py"
+PY="$FIXDIR/fixture-py"
 mkdir -p "$PY/app" "$PY/tests"
 : > "$PY/app/__init__.py"
 cat > "$PY/app/slug.py" <<'EOF'
@@ -49,4 +49,4 @@ testpaths = tests
 EOF
 (cd "$PY" && git init -qb main && git add -A && git -c user.email=fx@fx -c user.name=fx commit -qm "fixture inicial")
 
-echo "fixtures listos en $BASE"
+echo "fixtures listos en $FIXDIR"

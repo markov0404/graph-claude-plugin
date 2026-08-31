@@ -3,12 +3,13 @@
 # Usa --dangerously-skip-permissions SOLO dentro de fixtures desechables.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+FIXDIR="${GRAPH_FIXTURES_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/graph-plugin/fixtures}"
 CC=(claude -p --plugin-dir "$ROOT" --dangerously-skip-permissions)
 
 "$ROOT/tests/test-hook.sh"
 "$ROOT/tests/make-fixtures.sh"
 "$ROOT/tests/test-symbol-map.sh"
-JS="$ROOT/tests/build/fixture-js"
+JS="$FIXDIR/fixture-js"
 
 echo "— E1: init genera .graph/ con comandos verificados"
 (cd "$JS" && "${CC[@]}" "/graph:init refresh" > /dev/null)

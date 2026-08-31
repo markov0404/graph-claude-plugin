@@ -1,7 +1,7 @@
 # Escenarios interactivos GRAPH
 
-Correr en una sesión interactiva: `cd tests/build/fixture-py && claude --plugin-dir <ruta-al-clon>`
-(antes: `tests/make-fixtures.sh`; en fixture-py correr primero `/graph:init`).
+Correr en una sesión interactiva: `cd "${GRAPH_FIXTURES_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/graph-plugin/fixtures}/fixture-py" && claude --plugin-dir <ruta-al-clon>`
+(antes: `tests/make-fixtures.sh` — imprime la ruta de los fixtures; en fixture-py correr primero `/graph:init`).
 
 ## I1 — Tier M converge sin contadores
 `/graph:do quiero que slugify elimine tildes y signos de puntuación`

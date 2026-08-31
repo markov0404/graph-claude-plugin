@@ -40,4 +40,5 @@ Diseño completo: `docs/superpowers/specs/2026-08-31-graph-plugin-design.md`.
 
 Requiere claude autenticado, git y Node >=21; lanza sesiones headless reales
 (consume tokens) y usa --dangerously-skip-permissions solo dentro de fixtures
-desechables en tests/build/.
+desechables fuera del árbol del repo, en `GRAPH_FIXTURES_DIR` (default:
+`${XDG_CACHE_HOME:-$HOME/.cache}/graph-plugin/fixtures`).
