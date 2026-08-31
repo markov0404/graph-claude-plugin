@@ -1,0 +1,13 @@
+{
+  "name": "graph-marketplace",
+  "description": "Marketplace for graph plugin - layered scaling with cumulative repo knowledge",
+  "owner": { "name": "dani" },
+  "plugins": [
+    {
+      "name": "graph",
+      "source": "./",
+      "description": "Sistema de escalado por capas con conocimiento acumulativo por repo",
+      "version": "0.1.0"
+    }
+  ]
+}
