@@ -13,4 +13,4 @@
 - Bitácoras como tablas markdown con campos obligatorios (task record: Mini-spec / Diario / Verificación final / Resultado); estado transitorio explícito "en ejecución (transitorio)" mientras la tarea corre.
 - Verificación adversarial con lentes diversas Y modelos diversos por lente (correctitud→barato, valor→medio, riesgo→el más capaz) para romper errores correlacionados del voto.
 - Política de tooling: solo open source pinneado/vendoreado o rehecho en casa con tests, siempre dentro de lo instalable; cero prerrequisitos externos.
-- Tests headless con `--dangerously-skip-permissions` SOLO dentro de fixtures desechables de `tests/build/`; salidas de escenarios en `tests/*.out` (gitignoreadas, fuera del radio de `rm -rf` de los fixtures).
+- Tests headless con `--dangerously-skip-permissions` SOLO dentro de los fixtures desechables de `GRAPH_FIXTURES_DIR` (default `~/.cache/graph-plugin/fixtures`, FUERA del árbol del repo — aislamiento estructural); salidas de escenarios en `tests/*.out` (gitignoreadas).
