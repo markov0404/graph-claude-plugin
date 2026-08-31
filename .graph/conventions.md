@@ -10,3 +10,4 @@
 - Sin contadores de intentos en ningún proceso: la salida es por criterios cumplidos; estancamiento → escalada (diagnóstico → fan-out de perspectivas → subir tier).
 - Bitácoras como tablas markdown con campos obligatorios (task record: Mini-spec / Diario / Verificación final / Resultado).
 - Tests headless con `--dangerously-skip-permissions` SOLO dentro de fixtures desechables de `tests/build/`.
+- Trazabilidad: los commits producidos por una tarea GRAPH llevan el trailer `GRAPH-Task: <slug>` y se navegan con `git log --grep "GRAPH-Task: <slug>"`.
