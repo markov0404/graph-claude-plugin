@@ -28,7 +28,10 @@ fase 6 aplica el default (commitear `.graph/`) registrándolo en `decisions.md`.
 ## Fase 2 — Escaneo paralelo (solo lectura)
 
 Despacha agentes Explore EN PARALELO (una sola respuesta con todas las
-invocaciones), uno por dimensión:
+invocaciones), uno por dimensión. Instrucción OBLIGATORIA en el prompt de
+cada explorador: SOLO LECTURA ESTRICTA — leer archivos, jamás ejecutar
+scripts ni comandos del repo (tampoco "para ver qué hacen"); ejecutar es
+exclusivo de la Fase 3.
 
 1. **Estructura**: árbol de módulos, entry points, responsabilidad de cada área.
 2. **Convenciones**: estilo, naming, patrones de test, idioma de comentarios.
@@ -40,7 +43,15 @@ paquetes): en vez de 4 agentes globales, usa el Workflow tool con un agente
 por paquete/área más un sintetizador (esta instrucción de skill constituye el
 opt-in del usuario para usar Workflow).
 
-## Fase 3 — Verificación de comandos (la ÚNICA fase que ejecuta cosas)
+Además, en paralelo a los agentes Explore, ejecuta `tools/symbol-map.sh
+<raíz del repo>` (bash, cero dependencias externas) para obtener el listado
+objetivo de símbolos de nivel superior por archivo. Es lectura pura — no
+modifica nada del repo — y su salida es la que la Fase 4 escribe, tal cual,
+en la sección de símbolos de `map.md`. Si el script no existe o falla, sigue
+con las fases 2-3 igual: la ausencia se resuelve en la Fase 4 (degradación,
+nunca bloqueo).
+
+## Fase 3 — Verificación de comandos (la ÚNICA fase que ejecuta comandos de build/test/lint del proyecto)
 
 Toma los candidatos a build/test/lint de la fase 2 y EJECÚTALOS uno a uno:
 
@@ -48,13 +59,24 @@ Toma los candidatos a build/test/lint de la fase 2 y EJECÚTALOS uno a uno:
 - Falla por prerrequisito → entra con "no — requiere: <qué>" (p.ej. "requiere: npm install"). NUNCA lo registres como funcionando.
 - Riesgoso o largo (deploy, migraciones, publish) → NO lo corras; entra como "no verificado (riesgoso)".
 
+`tools/symbol-map.sh` (Fases 2/4) no es un comando del proyecto a verificar:
+es tooling propio de GRAPH, de solo lectura y sin efectos secundarios — no
+entra en `commands.md`.
+
 ## Fase 4 — Generar `.graph/`
 
-En refresh: regenera solo `INDEX.md`, `map.md`, `conventions.md` y
-`commands.md`. `decisions.md` y `tasks/` son historial acumulado: si ya
-existen, NUNCA se regeneran ni se borran — solo agrega a `decisions.md` una
-fila registrando el refresh (en un arranque sin `.graph/` previo se crean
-normalmente).
+En refresh: regenera `INDEX.md`, `conventions.md` y `commands.md` completos.
+En `map.md` regenera SOLO la sección entre `<!-- symbol-map:start -->` y
+`<!-- symbol-map:end -->` (volviendo a ejecutar `tools/symbol-map.sh`) —
+siempre, sin importar si el usuario eligió "todo" o "solo lo desactualizado"
+en la Fase 1: es dato barato y objetivo, se recalcula en cada refresh. El
+resto de `map.md` es prosa curada (síntesis de arquitectura + correcciones
+del usuario) y el refresh la respeta, nunca la reescribe. `decisions.md`,
+`constitution.md` y `tasks/` son historial acumulado o documento propio del
+usuario: si ya existen, NUNCA se regeneran ni se borran — solo agrega a
+`decisions.md` una fila registrando el refresh (en un arranque sin `.graph/`
+previo, todos se crean normalmente; si en un `.graph/` existente falta alguno
+de ellos — base creada por una versión anterior — créalo, solo esa primera vez).
 
 Crea los archivos con EXACTAMENTE estos formatos (rellenando con lo escaneado):
 
@@ -74,7 +96,29 @@ Crea los archivos con EXACTAMENTE estos formatos (rellenando con lo escaneado):
 ```
 
 `.graph/map.md`: título `# Mapa de arquitectura`, luego una sección `##` por
-módulo/área con: responsabilidad (1 frase), archivos clave, de qué depende.
+módulo/área con: responsabilidad (1 frase), archivos clave, de qué depende;
+al final, una sección `## Símbolos` con la salida de `tools/symbol-map.sh`
+escrita TAL CUAL entre marcadores:
+
+```markdown
+# Mapa de arquitectura
+
+## <módulo/área>
+- Responsabilidad: <1 frase>
+- Archivos clave: <rutas>
+- Depende de: <módulos o paquetes>
+
+(una sección así por módulo)
+
+## Símbolos
+<!-- symbol-map:start -->
+<salida literal de tools/symbol-map.sh>
+<!-- symbol-map:end -->
+```
+
+Si `tools/symbol-map.sh` falla o no existe: DENTRO de los marcadores escribe
+una línea `_sin symbol-map disponible: <motivo breve>_` y deja el resto de
+`map.md` exactamente como estaba — nunca bloquea init ni refresh por esto.
 
 `.graph/conventions.md`: título `# Convenciones`, bullets concretos y
 accionables ("tests con node:test en test/*.test.js", "imports relativos"),
@@ -88,6 +132,21 @@ nunca vaguedades ("código limpio").
 | `npm test` | corre los tests | sí (<YYYY-MM-DD>) | 1 passing |
 ```
 
+`.graph/constitution.md`: título `# Constitution`, bullets numerados `C1`,
+`C2`, … — una línea cada uno, concretos y verificables donde sea posible,
+derivados de invariantes evidentes del escaneo (límites de arquitectura,
+reglas de seguridad o de proceso que el propio repo ya impone). Nunca
+vaguedades ni relleno: si el escaneo no deja invariantes claros, menos
+bullets es mejor que bullets inventados:
+
+```markdown
+# Constitution
+
+- C1: <línea concreta y verificable>
+- C2: <línea concreta y verificable>
+(las que el escaneo justifique)
+```
+
 `.graph/decisions.md`: título `# Log de decisiones`, tabla `| fecha | decisión | porqué |` (arranca con la fila del propio init: qué se decidió sobre git).
 
 `.graph/tasks/README.md`: una línea: `Un archivo por tarea de /graph:do — ver la plantilla en el skill do.`
@@ -95,9 +154,11 @@ nunca vaguedades ("código limpio").
 ## Fase 5 — Corrección temprana
 
 Muestra al usuario un resumen de UNA pantalla: qué entendió el sistema (lo
-esencial de INDEX.md). Pregunta con AskUserQuestion si hay algo que corregir.
-Cada corrección se aplica DE INMEDIATO al archivo correspondiente: es el
-primer aprendizaje del repo.
+esencial de INDEX.md) y el `constitution.md` completo recién generado — es
+SU documento, y esta es su primera oportunidad de afinarlo. Pregunta con
+AskUserQuestion si hay algo que corregir, en cualquiera de los dos. Cada
+corrección se aplica DE INMEDIATO al archivo correspondiente: es el primer
+aprendizaje del repo.
 
 ## Fase 6 — Git
 

@@ -7,6 +7,22 @@ conversación); todo entregable pasa verificación adversarial; el `meta` es un
 literal puro; los scripts son JavaScript plano (sin tipos), sin Date.now() ni
 Math.random().
 
+Diversidad de modelo en la verificación adversarial (PoLL/ChatEval): el voto
+por mayoría falla de forma correlacionada cuando todos los refutadores
+comparten modelo — los mismos puntos ciegos se repiten en vez de cancelarse.
+Por eso, además de diversidad de LENTE, cada refutador/verificador usa el
+tier de modelo que corresponde a su lente:
+
+| Lente | Tier de modelo |
+|---|---|
+| Correctitud (¿el problema existe tal cual?) | barato (haiku o equivalente) |
+| Valor/alcance (¿mejora de verdad? ¿YAGNI?) | medio (sonnet o equivalente) |
+| Riesgo (¿rompe suite/invariantes/gate?) | el más capaz disponible |
+
+El barato es débil en juicios sutiles: se le asigna SOLO la lente mecánica
+(correctitud), nunca valor/alcance ni riesgo. Se pasa con `model` en las
+opciones de `agent()`; si se omite, el agente hereda el modelo de la sesión.
+
 ## 1. Implementación multi-frente
 
 Para: feature/refactor con subtareas independientes que mutan archivos.
@@ -30,7 +46,8 @@ const resultados = await pipeline(
     `Verifica adversarialmente esta implementación. Criterios: ${JSON.stringify(st.criterios)}. ` +
     `Resumen del implementador: ${res}. Ejecuta los métodos de verificación de verdad en la ruta de worktree que indica el resumen; ` +
     `en caso de duda, aprobado=false.`,
-    { label: `verif:${st.id}`, phase: 'Verificar', schema: VEREDICTO }
+    // lente riesgo (¿rompe suite/invariantes/gate?) → el más capaz disponible (ver tabla de reglas comunes)
+    { label: `verif:${st.id}`, phase: 'Verificar', schema: VEREDICTO, model: 'opus' }
   ).then(v => ({ id: st.id, resumen: res, veredicto: v }))
 )
 const ok = resultados.filter(Boolean)
@@ -65,7 +82,8 @@ const porAngulo = await pipeline(
   res => parallel(res.hallazgos.map(h => () =>
     agent(`Intenta REFUTAR con fuentes: "${h.afirmacion}" (fuente declarada: ${h.fuente}). ` +
           `Si no encuentras sustento independiente, sostenida=false.`,
-      { phase: 'Verificar', schema: VERDAD }).then(v => ({ ...h, ...v }))))
+      // lente correctitud (refutación factual contra fuentes) → barato (ver tabla de reglas comunes)
+      { phase: 'Verificar', schema: VERDAD, model: 'haiku' }).then(v => ({ ...h, ...v }))))
 )
 return { confirmados: porAngulo.filter(Boolean).flat().filter(Boolean).filter(h => h.sostenida) }
 ```
@@ -76,8 +94,11 @@ Para: "revisa/audita todo X" sin tamaño conocido. Usa loop-until-dry: rondas
 de buscadores hasta que 2 rondas seguidas no aporten nada nuevo, con dedup
 contra TODO lo visto y veredicto por mayoría de 3 refutadores por hallazgo.
 Estructura: igual a la plantilla 2 PERO con la etapa Verificar reemplazada:
-cada hallazgo fresco va a 3 refutadores en paralelo (`parallel`) y sobrevive con >=2
-sostenida=true; todo envuelto en `while (secas < 2)` relanzando los mismos
+cada hallazgo fresco va a 3 refutadores en paralelo (`parallel`) — uno por
+lente de la tabla de reglas comunes, cada uno con el `model` de su fila —
+p. ej. `agent(prompt(lente), { model: MODELO_POR_LENTE[lente], schema: VERDAD })`
+por cada `lente` de `['correctitud', 'valor/alcance', 'riesgo']` — y sobrevive
+con >=2 sostenida=true; todo envuelto en `while (secas < 2)` relanzando los mismos
 ANGULOS por ronda; `Set` de claves vistas (clave = afirmación normalizada)
 que acumula TODO lo emitido, refutados incluidos — dedupear solo contra
 confirmados hace que el loop nunca seque. Sin topes de cantidad: se agota,
