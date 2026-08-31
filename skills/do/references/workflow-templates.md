@@ -18,6 +18,7 @@ export const meta = {
   phases: [{ title: 'Implementar' }, { title: 'Verificar' }, { title: 'Sintetizar' }],
 }
 const SUBTAREAS = args.subtareas  // [{id, prompt, criterios}]
+// Cada st.prompt DEBE pedir al implementador terminar su resumen con la ruta de su worktree y su rama; el verificador verifica EN ESA RUTA.
 const VEREDICTO = { type: 'object', properties: {
   aprobado: { type: 'boolean' }, problemas: { type: 'array', items: { type: 'string' } } },
   required: ['aprobado', 'problemas'] }
@@ -27,12 +28,12 @@ const resultados = await pipeline(
   st => agent(st.prompt, { label: `impl:${st.id}`, phase: 'Implementar', isolation: 'worktree' }),
   (res, st) => agent(
     `Verifica adversarialmente esta implementación. Criterios: ${JSON.stringify(st.criterios)}. ` +
-    `Resumen del implementador: ${res}. Ejecuta los métodos de verificación de verdad; ` +
+    `Resumen del implementador: ${res}. Ejecuta los métodos de verificación de verdad en la ruta de worktree que indica el resumen; ` +
     `en caso de duda, aprobado=false.`,
     { label: `verif:${st.id}`, phase: 'Verificar', schema: VEREDICTO }
   ).then(v => ({ id: st.id, resumen: res, veredicto: v }))
 )
-const rechazadas = resultados.filter(Boolean).filter(r => !r.veredicto.aprobado)
+const rechazadas = resultados.filter(Boolean).filter(r => !r.veredicto || !r.veredicto.aprobado)
 return { resultados, rechazadas }
 // El orquestador corrige las rechazadas (loop de tier M) y re-verifica.
 ```
@@ -44,8 +45,8 @@ Para: pedidos de research/análisis con criterios de evidencia.
 ```javascript
 export const meta = {
   name: 'graph-investigacion',
-  description: 'Barrido multi-ángulo, lectura profunda y verificación de afirmaciones',
-  phases: [{ title: 'Barrer' }, { title: 'Profundizar' }, { title: 'Verificar' }],
+  description: 'Barrido multi-ángulo y verificación adversarial de afirmaciones',
+  phases: [{ title: 'Barrer' }, { title: 'Verificar' }],
 }
 const ANGULOS = args.angulos  // [{id, prompt}]  — ángulos de búsqueda distintos
 const HALLAZGOS = { type: 'object', properties: {
