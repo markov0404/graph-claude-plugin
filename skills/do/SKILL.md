@@ -23,7 +23,7 @@ Todo lo visible al usuario va en español.
 ## Fase 0 — Precondiciones
 
 - Separa del final del pedido los flags: `--tier S|M|L` (alias: `--quick`=S, `--full`=L), `--budget <n>`. El resto es el pedido.
-- Si NO existe `.graph/`: ofrece correr `/graph:init` primero (AskUserQuestion). Excepción con `--quick`: haz un escaneo mínimo inline (estructura + comando de test si es evidente), escribe un `.graph/` parcial cuyo `INDEX.md` empiece con `> Estado: parcial — correr /graph:init`, y sigue.
+- Si NO existe `.graph/`: ofrece correr `/graph:init` primero (AskUserQuestion). Excepción con `--quick`: haz un escaneo mínimo inline (estructura + comando de test si es evidente), escribe un `.graph/` parcial cuyo `INDEX.md` empiece con `> Estado: parcial — correr /graph:init`, y sigue. Esta escritura de precondición ocurre siempre, incluso en modo no interactivo: no es la "ejecución" del pedido que bloquean las reglas duras 1 y 7 (esas reglas protegen el repo del usuario, no impiden la bitácora `.graph/` propia del sistema).
 - Lee `.graph/INDEX.md` completo si el hook no lo inyectó ya.
 
 ## Fase 1 — Mini-spec (capa prompt)
