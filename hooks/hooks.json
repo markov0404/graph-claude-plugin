@@ -1,0 +1,17 @@
+{
+  "description": "GRAPH: carga .graph/INDEX.md al contexto en cada sesión",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/load-index.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
