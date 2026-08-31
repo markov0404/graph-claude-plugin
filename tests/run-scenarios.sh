@@ -28,6 +28,8 @@ QT=$(mktemp -d); cp -r "$JS/src" "$JS/test" "$JS/package.json" "$QT/"
 (cd "$QT" && git init -qb main && git add -A && git -c user.email=fx@fx -c user.name=fx commit -qm x)
 (cd "$QT" && "${CC[@]}" "/graph:do --quick quiero que total redondee a 2 decimales") > /tmp/graph-e3.out || true
 [ -f "$QT/.graph/INDEX.md" ] && grep -qi "parcial" "$QT/.graph/INDEX.md" || { echo "FAIL E3: sin INDEX parcial"; exit 1; }
+mutq=$(cd "$QT" && git status --porcelain | grep -v '\.graph/' || true)
+[ -z "$mutq" ] || { echo "FAIL E3: mutó código con --quick: $mutq"; exit 1; }
 rm -rf "$QT"
 
 echo "OK: escenarios automatizados (E1-E3)"
