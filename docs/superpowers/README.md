@@ -3,12 +3,12 @@
 # docs/superpowers — índice de specs y planes
 
 Este índice cubre los documentos de diseño de `docs/superpowers/`. A diferencia
-de los documentos que enlaza (protegidos por C7 de `.graph/constitution.md`:
+de los documentos que enlaza (protegidos por C3 de `.graph/constitution.md`:
 "registro histórico: specs y planes no se editan retroactivamente"), este
-README queda exento por la propia aclaración de C7 ("su README índice es
+README queda exento por la propia aclaración de C3 ("su README índice es
 vivo y sí se actualiza"): la tabla se actualiza cada vez que una tarea GRAPH
-implementa o supera un spec, obligación que impone la Fase 8 de `do` (C7
-permite la excepción; no es C7 quien la exige).
+implementa o supera un spec, obligación que impone la Fase 8 de `do` (C3
+permite la excepción; no es C3 quien la exige).
 
 Estados posibles: **vigente** (autoridad activa, aún no implementada del
 todo o es la referencia corriente) · **implementada** (su contenido ya vive
@@ -28,3 +28,4 @@ alterar el vocabulario de estados.
 | [`specs/2026-08-31-backlog-ronda-2.md`](specs/2026-08-31-backlog-ronda-2.md) | implementada | Backlog de dos ideas (efectos+inversa, threats-to-validity) que dio origen a la ronda 2; ambas ya especificadas e implementadas en `graph-mejoras-ronda-2-design.md`. |
 | [`specs/2026-08-31-graph-mejoras-ronda-2-design.md`](specs/2026-08-31-graph-mejoras-ronda-2-design.md) | implementada | Ronda 2: ledger de efectos con inversa explícita, honestidad metodológica, fixtures fuera del árbol. Ya incorporada a los skills. |
 | [`specs/2026-08-31-graph-robustez-ronda-3-design.md`](specs/2026-08-31-graph-robustez-ronda-3-design.md) | implementada | Ronda 3: los 5 riesgos altos de robustez operacional (gate pre-aprobado + convergencia determinista, retomar tarea interrumpida, lock de concurrencia, defensa de `.graph/` con esquema versionado, este mismo índice vivo). Implementada por la tarea GRAPH robustez-r3 (E4 verde end-to-end). |
+| [`specs/2026-08-31-graph-evidencia-dieta-ronda-4-design.md`](specs/2026-08-31-graph-evidencia-dieta-ronda-4-design.md) | implementada | Ronda 4: evidencia determinista E5-E7 (bloqueo sin firma, retomar+lock, presupuesto con ambas ramas ejercitadas) + dieta de ceremonia (prosa de efectos, constitution solo líneas rojas C1-C5, ruta trivial S con record compacto, cascada de refutación). Implementada por la tarea GRAPH evidencia-dieta-r4. |

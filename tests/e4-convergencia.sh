@@ -26,7 +26,7 @@ echo "— E4: convergencia con gate pre-aprobado (bug plantado en el test, Diari
 # Ningún otro escenario automatizado corre pytest en el host (make-fixtures.sh
 # solo escribe pytest.ini). Si falta python3/pytest, el diagnóstico debe decir
 # eso explícitamente en vez de culpar a la convergencia por un prerrequisito
-# externo no declarado (roza C5: cero prerrequisitos externos).
+# externo no declarado (roza C2: cero prerrequisitos externos).
 command -v python3 >/dev/null 2>&1 \
   || { echo "FAIL E4: falta python3 en el entorno (prerrequisito no declarado)"; exit 1; }
 python3 -m pytest --version >/dev/null 2>&1 \

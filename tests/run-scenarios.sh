@@ -41,5 +41,8 @@ mutq=$(cd "$QT" && git status --porcelain | grep -v '\.graph/' || true)
 grep -qiE "gate|apruéb|aprobar" "$E3OUT" || { echo "FAIL E3: no presentó el gate con --quick"; exit 1; }
 
 "$ROOT/tests/e4-convergencia.sh"
+"$ROOT/tests/e5-bloqueo.sh"
+"$ROOT/tests/e6-retomar-lock.sh"
+"$ROOT/tests/e7-presupuesto.sh"
 
-echo "OK: escenarios automatizados (E1-E4)"
+echo "OK: escenarios automatizados (E1-E7)"

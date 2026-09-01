@@ -75,6 +75,13 @@ haga falta preguntar nada. Si igual surge algo en runtime: regla dura 5.
 
 En duda entre dos tiers: el MAYOR. Anota el porqué en una frase.
 
+Si el resultado es S con exactamente UN criterio de aceptación, UN solo
+archivo implicado Y el preflight (Fase 3) quedó SIN preguntas: marca la
+tarea como **ruta trivial** — la Fase 5 usa el gate de un párrafo y la
+Fase 6 el task record con la plantilla compacta (ambas al final de sus
+fases). Cualquier otro caso (dos o más criterios, preguntas de preflight, o
+dos o más archivos) sigue el flujo normal aunque el tier sea S.
+
 ## Fase 5 — Gate (único checkpoint de aprobación)
 
 Presenta UNA pantalla con:
@@ -83,6 +90,12 @@ Presenta UNA pantalla con:
 2. Tier elegido y porqué — o "forzado por ti vía flag".
 3. Plan de ejecución; para L: topología del grafo (nodos, fases, dónde verifica).
 4. **"Necesito de ti"**: las preguntas del preflight (si hay).
+
+**Ruta trivial** (S con un criterio y un archivo, Fase 4): la pantalla se
+condensa en un solo párrafo — pedido entendido + el criterio con su método +
+los anti-criterios en una línea citando la(s) C-N aplicable(s) + "¿apruebas?".
+Todo lo demás de esta fase (`--gate-aprobado`, validación textual, aprobación
+interactiva) aplica igual; solo cambia el formato de presentación.
 
 **Si viene `--gate-aprobado <archivo>`:** lee el archivo (markdown simple: `pedido:`,
 `apruebo: sí`, y opcionales `tier:`/`budget:` — más una
@@ -112,7 +125,8 @@ presentar). **Nada muta antes del OK.**
 ## Fase 6 — Ejecución
 
 Si el task record `.graph/tasks/<YYYY-MM-DD>-<slug-corto>.md` NO EXISTE: créalo con la
-plantilla del final, sección Mini-spec aprobada llena (su línea `Aprobación:` dice `gate
+plantilla del final — o, si Fase 4 marcó **ruta trivial**, con la plantilla compacta que
+sigue a esa —, con su Mini-spec (aprobada) llena (el campo `Aprobación:` dice `gate
 interactivo`, o `aprobado por archivo <ruta>` si el gate vino de `--gate-aprobado`, Fase 5).
 Es la bitácora de la tarea. Si YA EXISTE (estás retomando la MISMA tarea, Fase 0):
 CONTINÚALO, jamás lo pises — no reescribas Mini-spec ni la tabla Efectos ya registrada,
@@ -124,31 +138,20 @@ ya está (retomando). Crea `.graph/.lock` con el contenido `<slug> · <YYYY-MM-D
 Todo commit que produzcas para esta tarea lleva el trailer `GRAPH-Task: <slug>` (navegable
 después con `git log --grep "GRAPH-Task: <slug>"`).
 
-Acto seguido — SOLO si el task record es nuevo — registra en su tabla
-`## Efectos` el **efecto #0**: la línea base git del working tree — `git
-stash create` (o, si el árbol está limpio, el `HEAD` actual directamente; sin
-mover `HEAD` en ningún caso) — con inversa "restaurar desde la base los paths
-tocados por el intento Y borrar los archivos nuevos no rastreados que el
-intento haya creado (la base de `git stash create` NO los captura)" y estado
-`activo`. La inversa del efecto #0 JAMÁS toca `.graph/` — el task record, el
-INDEX y toda la bitácora del sistema quedan excluidos de la restauración
-(C4: la evidencia de la escalada sobrevive a la reversión que documenta).
-Los efectos de archivo dentro del repo quedan cubiertos por este efecto #0
-vía git más la limpieza de no-rastreados — NO se listan uno a uno. Si estás
-retomando, el efecto #0 ya está en la tabla desde el arranque anterior — es la
-base contra la que Fase 0 reconstruyó el estado; no lo dupliques.
+Acto seguido, si el record es nuevo, registra el **efecto #0** en `##
+Efectos`: base git (`stash create`, o `HEAD` si el árbol está limpio, sin
+moverlo), inversa "restaurar los paths tocados y borrar los no-rastreados
+creados (el stash no los captura)", estado `activo`. La INVERSA jamás toca
+`.graph/` (protegido por C1); el EFECTO #0 cubre todo archivo del repo sin
+listarlo aparte; si retomas, no lo dupliques.
 
-**Efectos extra-git** (todo lo que quede fuera del alcance de git: comando
-con efectos laterales, llamada externa, archivo fuera del repo): se registran
-en la tabla `## Efectos` ANTES de ejecutarlos, con su inversa concreta y
-estado `activo`. Si la inversa no es expresable, el efecto se marca
-`irreversible` — y si era previsible, debió aparecer en el preflight/gate; si
-aparece imprevisto en runtime, trátalo como pregunta tardía (regla dura 5)
-ANTES de ejecutarlo, nunca después.
-
-Los efectos son estrictamente post-gate: las fases 1-4 no producen ni
-registran efectos, siguen siendo de solo lectura (regla dura 1). La tabla con
-solo el efecto #0 es el caso normal de una tarea que no tocó nada extra-git.
+**Extra-git** (comando lateral, llamada externa, archivo fuera del repo):
+regístralo ANTES de ejecutar, con inversa concreta y estado `activo`; sin
+inversa → `irreversible` (previsible: debía estar en el preflight/gate;
+imprevisto en runtime: pregunta tardía de la regla dura 5, antes de
+ejecutar). Todo esto es post-gate estricto (fases 1-4 no registran efectos,
+regla dura 1); la tabla con solo el #0 —fila única, sin nota aparte— es
+el caso normal.
 
 ### Tier S
 
@@ -178,15 +181,29 @@ Lee `references/workflow-templates.md` (en el directorio de este skill) y
 autora un Workflow con la plantilla que corresponda (implementación
 multi-frente / investigación / auditoría). Esta instrucción constituye el
 opt-in del usuario para usar el Workflow tool. En la verificación adversarial,
-el modelo por lente sigue la tabla lente→modelo de
-`references/workflow-templates.md`. Reglas: worktrees si los nodos
+sigue la cascada de refutación de `references/workflow-templates.md`:
+severidad alta, o hallazgos que tocan reglas duras/gate/contrato `.graph/`,
+van a las 3 lentes en paralelo con voto por mayoría (tabla lente→modelo del
+mismo archivo); el resto pasa primero por un refutador barato en lente
+correctitud y, solo si sostiene el hallazgo, a un refutador en lente riesgo
+(modelo más capaz). Reglas: worktrees si los nodos
 mutan los mismos archivos; verificación adversarial de cada entregable;
 síntesis final; el loop convergente de tier M aplica sobre el resultado
 sintetizado (si la síntesis no cumple criterios, se itera).
 
 ### Presupuesto
 
-Con `--budget <tokens>`: revisa el gasto al cerrar cada iteración/fase; al
+El presupuesto rige la EJECUCIÓN post-gate: las fases 1-5 (análisis de solo
+lectura) no lo consumen. Si al entrar a Fase 6 el presupuesto ya está
+agotado, la Fase 6 igual crea el task record y el lock como siempre — y
+cierra ahí mismo por la vía del bloqueo (el record SIEMPRE existe y declara
+lo ocurrido). El gasto post-gate se ESTIMA operativamente — el agente no ve
+contadores de tokens: como mínimo, cada iteración del loop y cada subagente
+despachado consumen presupuesto, y un presupuesto inferior al costo evidente
+de UNA iteración (pocos miles de tokens) queda agotado al cerrar la primera
+— si esa primera iteración no convergió, cierra por bloqueo; si la tarea ya
+convergió, cierra convergida (el presupuesto limita el trabajo restante,
+no anula un éxito ya logrado). Con `--budget <tokens>`: revisa el gasto al cerrar cada iteración/fase; al
 agotarse, pausa, presenta estado + evidencia de avance y pregunta: ampliar o
 abortar. **En modo `--gate-aprobado` sin quien responda:** no preguntes —
 es el mismo bloqueo tardío de la regla dura 5 (excepción `--gate-aprobado`):
@@ -246,4 +263,44 @@ sigues en fase 6.
 - Commits: <hash-corto> <subject> (uno por línea) | ninguno
 - Aprendizajes:
 - Preguntas tardías (runtime): <ninguna | cuáles y por qué el preflight no las vio>
+```
+
+## Plantilla compacta (ruta trivial, tier S — Fase 4)
+
+Mismas secciones del contrato, colapsadas a ~10 líneas de contenido. Aplica
+SOLO si Fase 4 marcó ruta trivial (S con un criterio y un archivo); cualquier
+otro caso usa la plantilla completa de arriba. El resto del contrato es
+idéntico: mismo esquema `.graph/`, mismas fases 7-8 (evidencia real, cierre
+que limpia `En curso`/`.lock`, nunca "ninguna" sin justificar en amenazas a
+la validez).
+
+```markdown
+# <slug> · <YYYY-MM-DD> · tier S (ruta trivial)
+
+## Mini-spec aprobada
+- Intención/alcance: <intención en una frase — qué entra/fuera si aplica>
+- Tier: S <elegido|forzado> — <porqué en media frase>
+- Criterio único (con método): <el criterio> — método: <cómo se verifica>
+- Anti-criterios (C-N) · Aprobación: <anti-criterios en una línea citando C-N> · <gate interactivo | aprobado por archivo `<ruta>`>
+
+## Efectos
+| # | efecto | inversa | estado |
+|---|---|---|---|
+| 0 | base git (`stash create`/`HEAD`) | restaurar paths + borrar no-rastreados (excluye `.graph/`) | activo |
+
+## Diario
+| iteración | qué se hizo | diagnóstico | resultado |
+|---|---|---|---|
+| 1 | <qué se hizo> | <diagnóstico, o "sin fallos"> | <resultado> |
+
+## Verificación final
+| criterio/anti-criterio | método | comando/procedimiento ejecutado | evidencia | ✅/❌ |
+|---|---|---|---|---|
+| <criterio + anti-criterios> | <método> | <comando ejecutado> | <output real citado> | ✅ |
+
+## Resultado
+- Estado: en ejecución (transitorio) | convergió | abortado por usuario | cerrado por bloqueo (pre-aprobado) | reescopado
+- Evidencia final (con amenazas a la validez, breve): <resumen>
+- Commits: <hash-corto> <subject> (uno por línea) | ninguno
+- Aprendizajes (y preguntas tardías si hubo): <resumen>
 ```

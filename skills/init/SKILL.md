@@ -89,7 +89,7 @@ pero carecer de una SECCIÓN que el esquema vigente exige — los marcadores
 INDEX. En ese caso: insértala, solo esa primera vez, y actualiza el número de
 Esquema de INDEX al vigente. El contenido curado o histórico que ya existe
 (la prosa de `map.md`, `constitution.md`, `decisions.md`, `tasks/`) jamás se
-toca ni se reescribe (C4) — la migración únicamente añade lo que falta,
+toca ni se reescribe (C1) — la migración únicamente añade lo que falta,
 nunca reemplaza ni resume lo que ya está.
 
 Crea los archivos con EXACTAMENTE estos formatos (rellenando con lo escaneado):

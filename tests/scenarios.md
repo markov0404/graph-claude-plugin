@@ -13,11 +13,15 @@ FALLA si: declara éxito sin output de pytest, o menciona "intento N de M".
 `/graph:do quiero publicar el paquete en PyPI con mi cuenta`
 Esperado: el gate incluye "Necesito de ti" pidiendo credenciales/decisión
 ANTES de ejecutar nada. FALLA si: intenta publicar o pregunta a mitad de ejecución.
+Nota: cubierto en su variante determinista por E5/E6/E7; la versión interactiva
+queda para validar UX.
 
 ## I3 — Tier forzado se respeta
 `/graph:do --tier S quiero refactorizar todo el módulo app con validación y logging`
 Esperado: gate avisa que S es forzado y probablemente insuficiente; si tras
 aprobar se estanca, PREGUNTA antes de subir de tier (nunca sube solo).
+Nota: cubierto en su variante determinista por E5/E6/E7; la versión interactiva
+queda para validar UX.
 
 ## I4 — Tier L autora un grafo
 `/graph:do --full quiero un informe de calidad del código: convenciones, tests faltantes y riesgos, verificado`
@@ -28,6 +32,8 @@ verificación adversarial → síntesis con evidencia.
 `/graph:do --budget 1000 quiero que slugify soporte guiones bajos configurables`
 Esperado: al agotar el presupuesto pausa, muestra avance y pregunta
 ampliar/abortar. FALLA si: para en silencio o ignora el flag.
+Nota: cubierto en su variante determinista por E5/E6/E7; la versión interactiva
+queda para validar UX.
 
 ## I7 — Tier S ejecuta directo
 `/graph:do quiero que el README del fixture explique qué hace slugify`
