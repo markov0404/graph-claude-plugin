@@ -1,10 +1,12 @@
 ---
-description: "GRAPH — comando maestro: convierte un pedido en ejecución disciplinada por capas (mini-spec → contexto → preflight → tier → gate → ejecución convergente → cierre). Invocar con /graph:do <pedido> [--tier S|M|L] [--quick] [--full] [--budget <tokens>]"
+description: "GRAPH — comando maestro: convierte un pedido en ejecución disciplinada por capas (mini-spec → contexto → preflight → tier → gate → ejecución convergente → cierre). Invocar con /graph:do <pedido> [--tier S|M|L] [--quick] [--full] [--budget <tokens>] [--gate-aprobado <archivo>]"
 ---
 
 # /graph:do — pipeline GRAPH
 
-Pedido del usuario (puede traer flags al final): "$ARGUMENTS"
+Pedido del usuario (puede traer flags al principio o al final): "$ARGUMENTS"
+
+Esquema de `.graph/` vigente: 3
 
 Eres el orquestador del sistema GRAPH. Tu trabajo NO es lanzarte a resolver:
 es recorrer las fases de este documento EN ORDEN, sin saltarte ninguna.
@@ -16,16 +18,18 @@ Todo lo visible al usuario va en español.
 2. **Sin contadores de intentos.** El loop sale únicamente por criterios cumplidos. El estancamiento dispara escalada, jamás parada.
 3. **La maquinaria escala sola; el alcance no.** Subir de tier es autónomo mientras los criterios y anti-criterios aprobados no cambien. Si el alcance real resulta otro, se vuelve al gate. El tier es un trinquete de una sola vía: sube solo, nunca se degrada a mitad de tarea; si la tarea resulta más simple de lo aprobado, se termina en el tier aprobado.
 4. **Tier forzado por el usuario nunca se sobrepasa en silencio**: si te quedas estancado en un tier forzado, pregunta.
-5. **La parada sin converger solo la decide el usuario.** Bloqueo humano-dependiente en runtime → pregunta con AskUserQuestion y continúa con la respuesta.
+5. **La parada sin converger solo la decide el usuario.** Bloqueo humano-dependiente en runtime → pregunta con AskUserQuestion y continúa con la respuesta. **Excepción — modo `--gate-aprobado`:** el archivo firma un pedido puntual, no preguntas futuras; un bloqueo tardío en este modo (pregunta sin respuesta firmada, o presupuesto agotado sin quien responda "ampliar o abortar") no puede resolverse preguntando — presenta el estado de la tarea y cierra por Fase 8 con el estado `cerrado por bloqueo (pre-aprobado)` (nunca `abortado por usuario`: el usuario no decidió la parada, firmó un pedido puntual): ofrece (AskUserQuestion) ejecutar las inversas pendientes de la tabla Efectos antes de cerrar; en no interactivo no hay a quién ofrecérselo — ejecuta directamente las inversas de todo efecto `activo` en orden LIFO, regístralo, y cierra con ese estado (nunca colgado).
 6. **Evidencia siempre.** Ningún criterio se declara cumplido sin ejecutar su método de verificación y citar el output real. Prohibido "debería funcionar".
-7. **Modo no interactivo** (sin usuario que responda): el gate no puede aprobarse — presenta la pantalla del gate como salida final y termina SIN mutar nada.
+7. **Modo no interactivo** (sin usuario que responda): el gate no puede aprobarse — presenta la pantalla del gate como salida final y termina SIN mutar nada — salvo aprobación pre-firmada por archivo (`--gate-aprobado`), que vale únicamente para el pedido textual que firma (Fase 5).
 
 ## Fase 0 — Precondiciones
 
-- Separa del final del pedido los flags: `--tier S|M|L` (alias: `--quick`=S, `--full`=L), `--budget <tokens>`. El resto es el pedido.
+- Separa los flags del pedido estén al principio, al final, o repartidos en ambos extremos: `--tier S|M|L` (alias: `--quick`=S, `--full`=L), `--budget <tokens>`, `--gate-aprobado <archivo>`. El pedido es lo que queda tras removerlos de ambos extremos. Normalización para la comparación textual del gate pre-aprobado (Fase 5): a este pedido y al valor tras `pedido:` del archivo se les recorta SOLO espacios/tabs de los extremos y el salto de línea final — después, coincidencia exacta carácter a carácter, sin ninguna otra transformación.
 - Si NO existe `.graph/`: ofrece correr `/graph:init` primero (AskUserQuestion). Excepción con `--quick`: haz un escaneo mínimo inline (estructura + comando de test si es evidente), escribe un `.graph/` parcial (mínimo `INDEX.md`; si el comando de test es evidente, también `commands.md` con verificado `no — detectado sin ejecutar`) cuyo `INDEX.md` incluya al inicio, tras el heading `# GRAPH · <proyecto>`, la línea `> Actualizado: <YYYY-MM-DD> · Estado: parcial — correr /graph:init`, y sigue. Esta escritura de precondición ocurre siempre, incluso en modo no interactivo: no es la "ejecución" del pedido que bloquean las reglas duras 1 y 7 (esas reglas protegen el repo del usuario, no impiden la bitácora `.graph/` propia del sistema). En modo no interactivo sin `--quick`: no puedes preguntar — reporta que falta `.graph/` y termina.
-- Lee `.graph/INDEX.md` completo si el hook no lo inyectó ya.
-- Si `INDEX.md` trae una línea `**En curso:** <slug> ...` de una tarea AJENA a la que vas a iniciar: pregunta con AskUserQuestion, 3 opciones — (a) **retomar**: abre su task record en `.graph/tasks/<slug>.md` y continúa esa tarea desde donde quedó el Diario, en vez de la nueva; (b) **cerrar como abandonada**: en ese task record fija Resultado → Estado: `abortado por usuario`, Evidencia final/Aprendizajes: sesión abandonada sin Fase 8, cerrada por la tarea nueva; quita la línea de `INDEX.md`; luego sigue con la tarea nueva; (c) **continuar con la nueva dejando la vieja marcada**: no toques la línea de la otra tarea; tu tarea añadirá la suya propia al llegar a su Fase 6 (puede haber más de una línea `En curso` simultánea). La mutación de la opción (b) — cerrar el record ajeno y limpiar su línea — es bitácora `.graph/` del sistema autorizada por la respuesta explícita del usuario: no es "ejecución" del pedido bajo las reglas duras 1 y 7, igual que la escritura de precondición de `--quick`. En modo no interactivo: reporta la tarea `En curso` encontrada (slug, tier, desde cuándo) y termina sin mutar nada.
+- Lee `.graph/INDEX.md` completo si el hook no lo inyectó ya. Si su línea de estado declara un `Esquema` menor al vigente arriba — o no declara el campo (base anterior al esquema 3) —, sugiere correr `/graph:init refresh` — no bloquea, la tarea sigue igual.
+- Si `INDEX.md` trae una línea `**En curso:** <slug> ...` cuyo slug (o el pedido que ese record registra) es LA MISMA tarea que vas a iniciar: NUNCA sobrescribas su task record — retómala sin preguntar: lee `.graph/tasks/<slug>.md` completo, reconstruye el estado real del working tree con `git diff`/`git status` contra la base del efecto #0 de ese record, añade al Diario la fila `retomada tras interrupción: <qué se encontró>`. Salta las fases 1 y 3-5 (mini-spec, preflight, tier y gate ya están aprobados en ese record), pero REHAZ la Fase 2 (es de solo lectura, no muta nada) para reconstruir el paquete de contexto que la Fase 6 necesita — ese paquete no sobrevive a una interrupción, el task record no lo guarda. Con el contexto reconstruido, continúa la ejecución desde donde el Diario quedó, directo a Fase 6.
+- Si en cambio esa línea `En curso` es de una tarea AJENA a la que vas a iniciar: pregunta con AskUserQuestion, 2 opciones — (a) **retomar**: abre su task record en `.graph/tasks/<slug>.md` y continúa esa tarea desde donde quedó el Diario, en vez de la nueva; (b) **cerrar como abandonada**: en ese task record fija Resultado → Estado: `abortado por usuario`, Evidencia final/Aprendizajes: sesión abandonada sin Fase 8, cerrada por la tarea nueva; quita la línea de `INDEX.md` y borra `.graph/.lock` si es de esa tarea; luego sigue con la tarea nueva. La mutación de la opción (b) — cerrar el record ajeno y limpiar su línea — es bitácora `.graph/` del sistema autorizada por la respuesta explícita del usuario: no es "ejecución" del pedido bajo las reglas duras 1 y 7, igual que la escritura de precondición de `--quick`. En modo no interactivo: reporta la tarea `En curso` encontrada (slug, tier, desde cuándo) y termina sin mutar nada.
+- Si `.graph/.lock` existe y es de una tarea AJENA (slug distinto al que vas a iniciar, y no resuelto ya por el punto anterior): pregunta con AskUserQuestion — (a) **romper el lock**: solo si consideras la tarea muerta/abandonada; encadena con "cerrar como abandonada" de arriba sobre su task record y su línea `En curso` (si sigue presente), y además borra `.graph/.lock`; luego sigue con la tarea nueva; (b) **no iniciar**: termina sin tocar nada. En modo no interactivo: reporta el contenido del lock tal cual y termina sin mutar nada.
 
 ## Fase 1 — Mini-spec (capa prompt)
 
@@ -80,20 +84,47 @@ Presenta UNA pantalla con:
 3. Plan de ejecución; para L: topología del grafo (nodos, fases, dónde verifica).
 4. **"Necesito de ti"**: las preguntas del preflight (si hay).
 
-Luego pregunta con AskUserQuestion: aprobar / corregir alcance / cambiar tier.
-Incorpora las respuestas (si el alcance cambió, rehaz la mini-spec y vuelve a
+**Si viene `--gate-aprobado <archivo>`:** lee el archivo (markdown simple: `pedido:`,
+`apruebo: sí`, y opcionales `tier:`/`budget:` — más una
+respuesta por cada pregunta de "Necesito de ti" que el preflight haya anticipado).
+`tier:` del archivo (si `--tier` no vino ya por línea de comando, que manda) vale como el
+tier APROBADO EN EL GATE (como si el usuario lo hubiera fijado al aprobar) — NO es
+forzado: la escalada autónoma de la regla dura 3 aplica con normalidad, y solo `--tier`
+por línea de comando cuenta como "forzado" a efectos de la regla dura 4. `budget:` sí
+equivale a `--budget` si ese flag no vino ya por línea de comando.
+Validación ESTRICTA: al `pedido:` del archivo y al pedido recibido en esta invocación (ya
+separado de sus flags, Fase 0) se les recorta SOLO espacios/tabs de los extremos y el
+salto de línea final — sin ninguna otra transformación. Si tras eso no coinciden
+TEXTUALMENTE (carácter a carácter), el gate NO se considera aprobado —
+se presenta la pantalla igual que en modo headless normal y termina (regla dura 7). Si
+coincide, trae `apruebo: sí`, y TODA pregunta de "Necesito de ti" tiene su respuesta
+firmada en el archivo: el gate queda aprobado sin AskUserQuestion — regístralo en el
+task record (al crearlo en Fase 6) como "aprobado por archivo `<ruta>`", e incorpora las
+respuestas del archivo antes de continuar. Si falta la respuesta a alguna pregunta: es
+bloqueo, nunca se asume — se presenta la pantalla y termina, igual que si no coincidiera
+el pedido. Esta es la única excepción a la regla dura 7 y vale ÚNICAMENTE para el pedido
+textual exacto que el archivo firma.
+
+Sin gate aprobado por archivo: pregunta con AskUserQuestion: aprobar / corregir alcance /
+cambiar tier. Incorpora las respuestas (si el alcance cambió, rehaz la mini-spec y vuelve a
 presentar). **Nada muta antes del OK.**
 
 ## Fase 6 — Ejecución
 
-Primero crea `.graph/tasks/<YYYY-MM-DD>-<slug-corto>.md` con la plantilla del
-final, sección Mini-spec aprobada llena. Es la bitácora de la tarea. Escribe
-también en `.graph/INDEX.md`, bajo la línea de estado (`> Actualizado: ...`),
-la línea `**En curso:** <slug> (tier <X>, desde <YYYY-MM-DD>)` (<X> = el tier
-ya aprobado en el gate). Todo commit que produzcas para esta tarea lleva el
-trailer `GRAPH-Task: <slug>` (navegable después con `git log --grep "GRAPH-Task: <slug>"`).
+Si el task record `.graph/tasks/<YYYY-MM-DD>-<slug-corto>.md` NO EXISTE: créalo con la
+plantilla del final, sección Mini-spec aprobada llena (su línea `Aprobación:` dice `gate
+interactivo`, o `aprobado por archivo <ruta>` si el gate vino de `--gate-aprobado`, Fase 5).
+Es la bitácora de la tarea. Si YA EXISTE (estás retomando la MISMA tarea, Fase 0):
+CONTINÚALO, jamás lo pises — no reescribas Mini-spec ni la tabla Efectos ya registrada,
+solo sigue añadiendo Diario/Efectos nuevos desde donde quedó. Escribe también en
+`.graph/INDEX.md`, bajo la línea de estado (`> Actualizado: ...`), la línea `**En curso:**
+<slug> (tier <X>, desde <YYYY-MM-DD>)` (<X> = el tier ya aprobado en el gate) — sáltalo si
+ya está (retomando). Crea `.graph/.lock` con el contenido `<slug> · <YYYY-MM-DD HH:MM>`
+(fecha y hora de este arranque) — sáltalo si ya existe para este mismo slug (retomando).
+Todo commit que produzcas para esta tarea lleva el trailer `GRAPH-Task: <slug>` (navegable
+después con `git log --grep "GRAPH-Task: <slug>"`).
 
-Acto seguido, en la misma creación del task record, registra en su tabla
+Acto seguido — SOLO si el task record es nuevo — registra en su tabla
 `## Efectos` el **efecto #0**: la línea base git del working tree — `git
 stash create` (o, si el árbol está limpio, el `HEAD` actual directamente; sin
 mover `HEAD` en ningún caso) — con inversa "restaurar desde la base los paths
@@ -103,7 +134,9 @@ intento haya creado (la base de `git stash create` NO los captura)" y estado
 INDEX y toda la bitácora del sistema quedan excluidos de la restauración
 (C4: la evidencia de la escalada sobrevive a la reversión que documenta).
 Los efectos de archivo dentro del repo quedan cubiertos por este efecto #0
-vía git más la limpieza de no-rastreados — NO se listan uno a uno.
+vía git más la limpieza de no-rastreados — NO se listan uno a uno. Si estás
+retomando, el efecto #0 ya está en la tabla desde el arranque anterior — es la
+base contra la que Fase 0 reconstruyó el estado; no lo dupliques.
 
 **Efectos extra-git** (todo lo que quede fuera del alcance de git: comando
 con efectos laterales, llamada externa, archivo fuera del repo): se registran
@@ -155,7 +188,12 @@ sintetizado (si la síntesis no cumple criterios, se itera).
 
 Con `--budget <tokens>`: revisa el gasto al cerrar cada iteración/fase; al
 agotarse, pausa, presenta estado + evidencia de avance y pregunta: ampliar o
-abortar. Sin flag: sin tope, convergencia manda. Nunca inventes topes.
+abortar. **En modo `--gate-aprobado` sin quien responda:** no preguntes —
+es el mismo bloqueo tardío de la regla dura 5 (excepción `--gate-aprobado`):
+cierra por Fase 8 con el estado `cerrado por bloqueo (pre-aprobado)`,
+declarando el avance y ejecutando directamente las inversas pendientes en
+LIFO (nunca colgado). Sin flag: sin tope, convergencia manda. Nunca inventes
+topes.
 
 ## Fase 7 — Verificación final
 
@@ -166,12 +204,13 @@ sigues en fase 6.
 
 ## Fase 8 — Cierre
 
-1. Completa el task record: resultado, evidencia final, amenazas a la validez, aprendizajes, y la lista de commits de la tarea (hash corto + subject, vía `git log --grep "GRAPH-Task: <slug>"`) en la sección Resultado. Registra también las preguntas tardías surgidas en runtime (regla dura 5) y qué debió detectar el preflight: su frecuencia es la métrica de calidad del preflight. Si se abortó: causa exacta y qué se descartó (vale tanto como un éxito); si al abortar quedan efectos en estado `activo` en la tabla Efectos, ofrece (AskUserQuestion) ejecutar sus inversas pendientes en orden LIFO antes de cerrar el record, y registra el resultado (ejecutadas → `revertido`; declinadas → quedan `activo` con la razón). Si la tarea CONVERGE, los efectos aún `activo` pasan a `conservado` — el trabajo es el entregable; ningún record cerrado queda con efectos `activo`. Llena "Amenazas a la validez" con honestidad: qué se midió y qué no, corrida única vs repetida, entorno único, qué quedó sin comparación controlada — **prohibido escribir "ninguna" sin justificar explícitamente** por qué la evidencia es completa.
-2. Elimina de `.graph/INDEX.md` la línea `**En curso:** <slug> ...` de esta tarea — SIEMPRE, converja o se aborte.
+1. Completa el task record: resultado, evidencia final, amenazas a la validez, aprendizajes, y la lista de commits de la tarea (hash corto + subject, vía `git log --grep "GRAPH-Task: <slug>"`) en la sección Resultado. Registra también las preguntas tardías surgidas en runtime (regla dura 5) y qué debió detectar el preflight: su frecuencia es la métrica de calidad del preflight. Si se abortó, o se cerró por bloqueo tardío en modo `--gate-aprobado` (regla dura 5: pregunta sin respuesta firmada, o presupuesto agotado sin quien responda): causa exacta y qué se descartó (vale tanto como un éxito) — este segundo caso usa el estado `cerrado por bloqueo (pre-aprobado)`, nunca `abortado por usuario` (el usuario no decidió la parada); si al cerrar por cualquiera de las dos vías quedan efectos en estado `activo` en la tabla Efectos, ofrece (AskUserQuestion) ejecutar sus inversas pendientes en orden LIFO antes de cerrar el record, y registra el resultado (ejecutadas → `revertido`; declinadas → quedan `activo` con la razón) — en modo `--gate-aprobado` sin quien responda (regla dura 5), ejecuta directamente esas inversas en vez de ofrecerlas. Si la tarea CONVERGE, los efectos aún `activo` pasan a `conservado` — el trabajo es el entregable; ningún record cerrado queda con efectos `activo`. Llena "Amenazas a la validez" con honestidad: qué se midió y qué no, corrida única vs repetida, entorno único, qué quedó sin comparación controlada — **prohibido escribir "ninguna" sin justificar explícitamente** por qué la evidencia es completa.
+2. Elimina de `.graph/INDEX.md` la línea `**En curso:** <slug> ...` de esta tarea y borra `.graph/.lock` — SIEMPRE, converja o se aborte, ambos en este mismo paso.
 3. ¿La tarea reveló algo estructural? → actualiza `map.md` / `conventions.md` / `decisions.md`, respetando el formato existente de cada archivo.
 4. ¿Cambió algo de la pantalla principal (stack, comandos, top-5)? → actualiza `INDEX.md`.
 5. ¿Algún comando de `commands.md` falló en uso? → corrígelo ahí (auto-reparación).
-6. Resume al usuario: qué se entregó, con qué evidencia (y sus amenazas a la validez), qué aprendió el sistema.
+6. ¿La tarea implementó o superó un spec/plan de `docs/superpowers/`? → actualiza la tabla del índice `docs/superpowers/README.md` (columna estado).
+7. Resume al usuario: qué se entregó, con qué evidencia (y sus amenazas a la validez), qué aprendió el sistema.
 
 ## Plantilla del task record
 
@@ -184,6 +223,7 @@ sigues en fase 6.
 - Criterios (con método):
 - Anti-criterios (con método):
 - Tier: <elegido|forzado> — porqué:
+- Aprobación: <gate interactivo | aprobado por archivo `<ruta>`>
 
 ## Efectos
 | # | efecto | inversa | estado |
@@ -200,7 +240,7 @@ sigues en fase 6.
 |---|---|---|---|---|
 
 ## Resultado
-- Estado: en ejecución (transitorio, solo mientras la Fase 6-7 corre) | convergió | abortado por usuario | reescopado
+- Estado: en ejecución (transitorio, solo mientras la Fase 6-7 corre) | convergió | abortado por usuario | cerrado por bloqueo (pre-aprobado) | reescopado
 - Evidencia final:
 - Amenazas a la validez: <qué se midió y qué no; evidencia de corrida única vs repetida; entorno único; qué quedó sin comparación controlada>
 - Commits: <hash-corto> <subject> (uno por línea) | ninguno

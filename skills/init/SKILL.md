@@ -9,6 +9,8 @@ Argumentos: "$ARGUMENTS" (vacío = setup normal; "refresh" = re-escaneo directo)
 Tu trabajo es generar o refrescar `.graph/`, la base de conocimiento de ESTE
 repo. Recorre las fases en orden. Todo lo que escribas va en español.
 
+Esquema de `.graph/` vigente: 3
+
 ## Fase 1 — Detección previa
 
 Si existe `.graph/` y los argumentos no dicen "refresh": muestra la fecha de
@@ -65,7 +67,9 @@ entra en `commands.md`.
 
 ## Fase 4 — Generar `.graph/`
 
-En refresh: regenera `INDEX.md`, `conventions.md` y `commands.md` completos.
+En refresh: regenera `conventions.md` y `commands.md` completos, e
+`INDEX.md` sujeto a la re-normalización sin pérdida descrita más abajo —
+nunca se descarta contenido previo de INDEX sin antes trasladarlo.
 En `map.md` regenera SOLO la sección entre `<!-- symbol-map:start -->` y
 `<!-- symbol-map:end -->` (volviendo a ejecutar `tools/symbol-map.sh`) —
 siempre, sin importar si el usuario eligió "todo" o "solo lo desactualizado"
@@ -78,13 +82,23 @@ usuario: si ya existen, NUNCA se regeneran ni se borran — solo agrega a
 previo, todos se crean normalmente; si en un `.graph/` existente falta alguno
 de ellos — base creada por una versión anterior — créalo, solo esa primera vez).
 
+Regla de migración por SECCIÓN: una base existente puede tener ya el archivo
+pero carecer de una SECCIÓN que el esquema vigente exige — los marcadores
+`<!-- symbol-map:start -->`/`<!-- symbol-map:end -->` en `map.md`, el campo
+`Esquema:` en la línea de estado de INDEX, o el campo `**Testing:**` de
+INDEX. En ese caso: insértala, solo esa primera vez, y actualiza el número de
+Esquema de INDEX al vigente. El contenido curado o histórico que ya existe
+(la prosa de `map.md`, `constitution.md`, `decisions.md`, `tasks/`) jamás se
+toca ni se reescribe (C4) — la migración únicamente añade lo que falta,
+nunca reemplaza ni resume lo que ya está.
+
 Crea los archivos con EXACTAMENTE estos formatos (rellenando con lo escaneado):
 
 `.graph/INDEX.md`:
 
 ```markdown
 # GRAPH · <nombre del proyecto>
-> Actualizado: <YYYY-MM-DD> · Estado: completo
+> Actualizado: <YYYY-MM-DD> · Estado: completo · Esquema: 3
 
 **Qué es:** <1-2 frases>
 **Stack:** <lenguajes y frameworks clave>
@@ -95,6 +109,25 @@ Crea los archivos con EXACTAMENTE estos formatos (rellenando con lo escaneado):
 (hasta 5)
 **Convenciones esenciales:** <máximo 3 bullets; detalle en conventions.md>
 ```
+
+Re-normalización sin pérdida (rige para TODO escritor de `INDEX.md` — init
+inicial, refresh, y cualquier otro comando que escriba en él, no solo este
+refresh): INDEX es el nodo raíz del grafo de conocimiento y se mantiene en
+~1 pantalla (orientativo: ≤4KB). Si al escribirlo el INDEX resultante supera
+ese presupuesto, o si en un refresh el INDEX regenerado NO reproduce
+contenido que el INDEX previo sí tenía (aportes agregados a mano, exceso ya
+presente de una base vieja, restos de un esquema anterior), MUEVE ese
+contenido ÍNTEGRO — completo, sin resumir ni truncar — a un archivo
+enlazado de `.graph/`, ANTES de sobrescribir o descartar el INDEX previo,
+dejando en INDEX un puntero de una línea (`detalle en <archivo>`). Si el
+destino es un archivo YA EXISTENTE, el traslado AÑADE el contenido al final
+bajo un heading con la fecha (`## Trasladado desde INDEX el <YYYY-MM-DD>`)
+— nunca reemplaza lo que ese archivo ya tenía. `constitution.md`,
+`decisions.md` y `tasks/` son nodos protegidos: NUNCA son destino de un
+traslado; si hace falta mover contenido, créase en su lugar un archivo
+nuevo enlazado. Mover, nunca borrar ni resumir con pérdida: es una decisión
+vinculante — el contenido siempre sigue existiendo íntegro en algún nodo
+del grafo.
 
 `.graph/map.md`: título `# Mapa de arquitectura`, luego una sección `##` por
 módulo/área con: responsabilidad (1 frase), archivos clave, de qué depende;

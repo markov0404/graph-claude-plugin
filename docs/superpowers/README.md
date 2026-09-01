@@ -1,0 +1,30 @@
+Índice vivo — no es registro histórico; se actualiza.
+
+# docs/superpowers — índice de specs y planes
+
+Este índice cubre los documentos de diseño de `docs/superpowers/`. A diferencia
+de los documentos que enlaza (protegidos por C7 de `.graph/constitution.md`:
+"registro histórico: specs y planes no se editan retroactivamente"), este
+README queda exento por la propia aclaración de C7 ("su README índice es
+vivo y sí se actualiza"): la tabla se actualiza cada vez que una tarea GRAPH
+implementa o supera un spec, obligación que impone la Fase 8 de `do` (C7
+permite la excepción; no es C7 quien la exige).
+
+Estados posibles: **vigente** (autoridad activa, aún no implementada del
+todo o es la referencia corriente) · **implementada** (su contenido ya vive
+en el código/skills, el documento queda como archivo) · **superada**
+(reemplazada por un diseño posterior) · **histórica** (documento de proceso,
+no de diseño vigente).
+
+La columna `notas` es una adición deliberada al formato mínimo
+`| spec/plan | estado |`: aporta contexto de trazabilidad por fila sin
+alterar el vocabulario de estados.
+
+| documento | estado | notas |
+|---|---|---|
+| [`specs/2026-08-31-graph-plugin-design.md`](specs/2026-08-31-graph-plugin-design.md) | superada | Diseño original del plugin. Superada por las rondas 1-3 (`graph-mejoras-sota-design.md`, `graph-mejoras-ronda-2-design.md`, `graph-robustez-ronda-3-design.md`) en todo lo que tocan sobre `.graph/` y los skills `init`/`do`; el resto (propósito, arquitectura general) sigue siendo la referencia de origen. |
+| [`plans/2026-08-31-graph-plugin.md`](plans/2026-08-31-graph-plugin.md) | histórica | Plan de implementación tarea-a-tarea del diseño original. Documento de proceso ya ejecutado; se conserva como historial. |
+| [`specs/2026-08-31-graph-mejoras-sota-design.md`](specs/2026-08-31-graph-mejoras-sota-design.md) | implementada | Ronda 1: mejoras tomadas del estado del arte (Superpowers, Spec Kit, Aider, OpenHands, PoLL/ChatEval, CCPM). Ya incorporada a los skills. |
+| [`specs/2026-08-31-backlog-ronda-2.md`](specs/2026-08-31-backlog-ronda-2.md) | implementada | Backlog de dos ideas (efectos+inversa, threats-to-validity) que dio origen a la ronda 2; ambas ya especificadas e implementadas en `graph-mejoras-ronda-2-design.md`. |
+| [`specs/2026-08-31-graph-mejoras-ronda-2-design.md`](specs/2026-08-31-graph-mejoras-ronda-2-design.md) | implementada | Ronda 2: ledger de efectos con inversa explícita, honestidad metodológica, fixtures fuera del árbol. Ya incorporada a los skills. |
+| [`specs/2026-08-31-graph-robustez-ronda-3-design.md`](specs/2026-08-31-graph-robustez-ronda-3-design.md) | vigente | Ronda 3: los 5 riesgos altos de robustez operacional (gate pre-aprobado + convergencia determinista, retomar tarea interrumpida, lock de concurrencia, defensa de `.graph/` con esquema versionado, este mismo índice vivo). En implementación. |

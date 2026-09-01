@@ -40,4 +40,6 @@ mutq=$(cd "$QT" && git status --porcelain | grep -v '\.graph/' || true)
 [ -z "$mutq" ] || { echo "FAIL E3: mutó código con --quick: $mutq"; exit 1; }
 grep -qiE "gate|apruéb|aprobar" "$E3OUT" || { echo "FAIL E3: no presentó el gate con --quick"; exit 1; }
 
-echo "OK: escenarios automatizados (E1-E3)"
+"$ROOT/tests/e4-convergencia.sh"
+
+echo "OK: escenarios automatizados (E1-E4)"

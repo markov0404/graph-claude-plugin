@@ -31,7 +31,9 @@ Dentro de una sesión de Claude Code:
 Con `.graph/` presente, un hook SessionStart inyecta `INDEX.md` al contexto
 en cada sesión nueva (silencioso si no existe).
 
-Diseño completo: `docs/superpowers/specs/2026-08-31-graph-plugin-design.md`.
+Fuente viva del comportamiento: `skills/do/SKILL.md` y `skills/init/SKILL.md`.
+Historial de diseño: `docs/superpowers/` (los specs y planes documentan el
+momento en que se escribieron — ver su README para el estado de cada uno).
 
 ## Pruebas
 
