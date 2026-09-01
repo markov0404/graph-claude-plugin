@@ -19,10 +19,10 @@ El orquestador: 7 reglas duras + 8 fases (0 flags/precondiciones, 1 mini-spec co
 `test-hook.sh` (2 casos del hook, TDD), `make-fixtures.sh` (genera fixture-js y fixture-py desechables en `GRAPH_FIXTURES_DIR`, default `~/.cache/graph-plugin/fixtures`, fuera del árbol del repo), `run-scenarios.sh` (E1 init genera `.graph/` verificado; E2 gate bloquea headless sin mutación ni task record prematuro; E3 `--quick` crea base parcial sin mutar código), `scenarios.md` (I1-I7 interactivos: convergencia M, preflight, tier forzado, grafo L, presupuesto, hook, tier S). Cobertura solo-interactiva: escalada, Workflow real, presupuesto.
 
 ## Documentación (`docs/superpowers/`)
-Registro histórico de specs y planes — no se edita retroactivamente (C7); el estado vigente de cada documento vive en su índice VIVO `docs/superpowers/README.md` (exento de la congelación por el propio C7). Fuente viva del comportamiento: los skills.
+Registro histórico de specs y planes — no se edita retroactivamente (C3); el estado vigente de cada documento vive en su índice VIVO `docs/superpowers/README.md` (exento de la congelación por el propio C3). Fuente viva del comportamiento: los skills.
 
 ## Herramientas propias (`tools/`)
-`symbol-map.sh` — extractor de símbolos de nivel superior por archivo (bash+awk, cero dependencias, política de tooling C5): JS/TS, Python y bash; conservador (estado de paridad para strings/docstrings: jamás inventa); testeado por `tests/test-symbol-map.sh` (4 casos). Lo consumen las Fases 2/4 de init para la sección de símbolos de este archivo.
+`symbol-map.sh` — extractor de símbolos de nivel superior por archivo (bash+awk, cero dependencias, política de tooling C2): JS/TS, Python y bash; conservador (estado de paridad para strings/docstrings: jamás inventa); testeado por `tests/test-symbol-map.sh` (4 casos). Lo consumen las Fases 2/4 de init para la sección de símbolos de este archivo.
 
 ## Símbolos
 <!-- symbol-map:start -->
