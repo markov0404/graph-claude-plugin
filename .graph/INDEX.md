@@ -1,5 +1,5 @@
 # GRAPH · graph-plugin
-> Actualizado: 2026-08-31 · Estado: completo
+> Actualizado: 2026-08-31 · Estado: completo · Esquema: 3
 
 **Qué es:** Plugin de Claude Code que convierte un prompt corto en ejecución disciplinada por capas (mini-spec → contexto → preflight → tier S/M/L → gate → ejecución convergente → cierre), con conocimiento acumulativo por repo en `.graph/`.
 **Stack:** Sistema de plugins de Claude Code (SKILL.md + hooks + JSON), bash + awk propios (política: cero dependencias externas), markdown en español. Fixtures de prueba en Node (`node:test`) y Python (`pytest`).
