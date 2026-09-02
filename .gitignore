@@ -1,3 +1,5 @@
 tests/*.out
 .graph/.lock
 bench/out/
+bench/seq/out/
+__pycache__/
