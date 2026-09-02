@@ -1,2 +1,3 @@
 tests/*.out
 .graph/.lock
+bench/out/
