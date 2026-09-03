@@ -19,13 +19,13 @@ La doble flecha spec⇄tests (BDD/Specification-by-Example) existe hace 20 años
 | stock: alta/baja/consulta con validaciones | tests/test_stock.py (5 tests) | fuerte | a1b2c3 | init 2026-09-03 |
 | descuentos: reuso de disponible() (no-duplicación) | (sin check ejecutable) | — | — | tarea p3-descuentos |
 
-**Huecos conocidos (sin check ejecutable):** <lista de comportamientos declarados sin oráculo — el objetivo natural del refuerzo de caracterización>
+**Huecos conocidos (sin check ejecutable):** <una línea por hueco, con origen al final: `- <comportamiento> (tarea <slug>)` — init NUNCA crea ni borra huecos; solo los gestiona /graph:do Fase 8>
 ```
 
 - **área/comportamiento**: etiqueta de intención en prosa corta (la escribe el modelo — es la parte semántica; una fila por área coherente, no por test).
 - **checks**: archivos de test (y nº de tests) que la cubren, tal como los reporta `tools/oraculo-map.sh` (mecánico).
 - **fuerza**: `fuerte` / `débil` por la heurística mecánica del tool (asserts reales vs triviales/ausentes — misma familia de heurística que red.sh); nunca juicio del modelo solo.
-- **vigencia**: hash corto (md5 primeros 7) del CONTENIDO concatenado de los archivos de check listados, calculado por el tool al registrar. **Regla de vigencia:** antes de confiar en una fila, el consumidor re-corre `tools/oraculo-map.sh verify` — si el hash no coincide o falta un archivo, la fila es `dudosa` y NO se usa: se re-inspecciona fresco (el mapa es un índice acelerador, jamás una autoridad que pueda volver al router menos seguro que sin mapa).
+- **vigencia**: lista de hash7 (md5 primeros 7 del contenido) POR archivo de check, en el mismo orden que `checks`, separados por coma (ruling r8: el hash concatenado del diseño original era incalculable con `verify` por-archivo). Fila vigente = TODOS sus hashes verifican. **Regla de vigencia:** antes de confiar en una fila, el consumidor re-corre `tools/oraculo-map.sh verify` por CADA archivo — cualquier rc≠0 (incluido tool ausente) o archivo faltante → fila `dudosa` → NO se usa: inspección fresca. **Regla de aceleración (ruling r8):** una fila vigente y `fuerte` ACELERA — dice exactamente qué archivos mirar — pero NO sustituye la lectura de fuerza mínima del eje B: antes de dar verde, se leen (rápido) los checks citados; el mapa ahorra el descubrimiento, no la mirada. **Fila sin checks ejecutables o con fuerza `—` → JAMÁS verde**: es hueco conocido → inspección fresca o refuerzo. (El mapa es un índice acelerador, jamás una autoridad que pueda volver al router menos seguro que sin mapa.)
 - **origen**: `init <fecha>` o `tarea <slug>`.
 - Re-normalización sin pérdida: si el mapa crece más de ~1 pantalla, las áreas se mueven íntegras a nodos enlazados (regla vigente del esquema); la sección de huecos conocidos SIEMPRE queda en el archivo raíz.
 
@@ -53,7 +53,9 @@ Ablación del mapa con 3 tareas nuevas de ruteo-sensible en `bench/tasks/` (cont
 - **t8-sin-oraculo**: repo sin suite corrible (commands.md sin comando de test verificado); ruta esperada: pipeline completo.
 - **t9-oraculo-debil**: tests del área existen pero triviales (débil por heurística); ruta esperada: refuerzo o pipeline — no pelada nativa sobre oráculo débil.
 
-Configs: **R** (mapa sembrado por init real) vs **R−m** (idéntica pero el harness elimina `oraculo.md` del `.graph` inyectado — ablación pura; env `GRAPH_BENCH_SIN_MAPA=1` en el runner). N=2 reps → 12 celdas.
+Configs: **R** (mapa sembrado por init real) vs **R−m** (idéntica pero el harness elimina `oraculo.md` del `.graph` inyectado; env `GRAPH_BENCH_SIN_MAPA=1`, restringido a config R). N=2 reps → 12 celdas + **4 de control** (t1 × 2 reps × 2 brazos, donde la ruta correcta ES pelada nativa — sin ellas, la política degenerada "siempre pipeline" saturaría el criterio de ruteo sin castigo visible; su ruta se lee del record de evidencia).
+
+**Qué mide la ablación (ruling r8, declarado antes de correr):** el valor MARGINAL del mapa sobre la memoria existente — el resto del `.graph` horneado (INDEX línea Testing, map.md) puede describir cobertura por otra vía y R−m lo conserva; un Δ≈0 significa "el mapa no agrega sobre la memoria narrativa ya presente", que es la pregunta de despliegue real, no "el mapa no sirve en absoluto". Al hornear t7-t9 se archiva qué dicen INDEX/map.md sobre cobertura, para poder interpretar el Δ. **Ruteo correcto en t7-t9:** pelada nativa rescatada por escalación de la red cuenta como ruteo INCORRECTO (`pipeline-por-escalación`, valor propio): el router falló y lo salvó la red — se reporta aparte porque es dato valioso, pero no acredita el eje B.
 
 Criterios de éxito:
 1. Mecánicos (antes de gastar): `oraculo-map.sh` determinista con test verde; init sobre fixture siembra el mapa con TODOS los archivos de test reales (0 omisiones, hashes correctos — verificación offline); cierre de una tarea real (smoke) añade sus filas; fila dudosa (test borrado tras sembrar) NO se usa (evidencia en record de que cayó a inspección fresca).
