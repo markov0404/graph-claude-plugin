@@ -163,8 +163,11 @@ mapfile -t RECSB < <(find "$E7B/.graph/tasks" -maxdepth 1 -name '*.md' ! -name '
 [ "${#RECSB[@]}" -ge 1 ] || { echo "FAIL E7-B3: no se generó task record en .graph/tasks/"; exit 1; }
 RECB="${RECSB[${#RECSB[@]}-1]}"
 
-# Clasificó tier S (condición de entrada al formato compacto de R4-B3).
-head -1 "$RECB" | grep -qE '· tier S( \(ruta trivial\))? *$' || { echo "FAIL E7-B3: $RECB no clasificó tier S (encabezado: $(head -1 "$RECB"))"; exit 1; }
+# Clasificó tier S, o legítimamente ruta pelada-con-red (router r7: huecos
+# nulos + oráculo verificado con pytest + consecuencia baja también habilita
+# esa ruta para este pedido) — ambas dan record compacto (condición de
+# entrada al formato compacto de R4-B3).
+head -1 "$RECB" | grep -qE '· (tier S( \(ruta trivial\))?|ruta pelada-con-red) *$' || { echo "FAIL E7-B3: $RECB no clasificó tier S ni ruta pelada-con-red (encabezado: $(head -1 "$RECB"))"; exit 1; }
 
 # Efectos: SOLO la fila #0 (estructural, por awk — mismo patrón que E4).
 EFECTOS_N=$(awk '/^## Efectos/{f=1;next} /^## /{f=0} f' "$RECB" | awk '

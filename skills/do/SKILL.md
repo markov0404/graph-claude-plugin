@@ -14,7 +14,7 @@ Todo lo visible al usuario va en español.
 
 ## Reglas duras (no negociables)
 
-1. **Nada se ejecuta antes del OK del gate.** "Ejecutar" = mutar el repo o producir efectos externos. Las fases 1-4 son de solo lectura (despachar agentes de análisis está permitido).
+1. **Nada se ejecuta antes del OK del gate.** "Ejecutar" = mutar el repo o producir efectos externos. Las fases 0.5-4 son de solo lectura (despachar agentes de análisis está permitido).
 2. **Sin contadores de intentos.** El loop sale únicamente por criterios cumplidos. El estancamiento dispara escalada, jamás parada.
 3. **La maquinaria escala sola; el alcance no.** Subir de tier es autónomo mientras los criterios y anti-criterios aprobados no cambien. Si el alcance real resulta otro, se vuelve al gate. El tier es un trinquete de una sola vía: sube solo, nunca se degrada a mitad de tarea; si la tarea resulta más simple de lo aprobado, se termina en el tier aprobado.
 4. **Tier forzado por el usuario nunca se sobrepasa en silencio**: si te quedas estancado en un tier forzado, pregunta.
@@ -27,9 +27,52 @@ Todo lo visible al usuario va en español.
 - Separa los flags del pedido estén al principio, al final, o repartidos en ambos extremos: `--tier S|M|L` (alias: `--quick`=S, `--full`=L), `--budget <tokens>`, `--gate-aprobado <archivo>`. El pedido es lo que queda tras removerlos de ambos extremos. Normalización para la comparación textual del gate pre-aprobado (Fase 5): a este pedido y al valor tras `pedido:` del archivo se les recorta SOLO espacios/tabs de los extremos y el salto de línea final — después, coincidencia exacta carácter a carácter, sin ninguna otra transformación.
 - Si NO existe `.graph/`: ofrece correr `/graph:init` primero (AskUserQuestion). Excepción con `--quick`: haz un escaneo mínimo inline (estructura + comando de test si es evidente), escribe un `.graph/` parcial (mínimo `INDEX.md`; si el comando de test es evidente, también `commands.md` con verificado `no — detectado sin ejecutar`) cuyo `INDEX.md` incluya al inicio, tras el heading `# GRAPH · <proyecto>`, la línea `> Actualizado: <YYYY-MM-DD> · Estado: parcial — correr /graph:init`, y sigue. Esta escritura de precondición ocurre siempre, incluso en modo no interactivo: no es la "ejecución" del pedido que bloquean las reglas duras 1 y 7 (esas reglas protegen el repo del usuario, no impiden la bitácora `.graph/` propia del sistema). En modo no interactivo sin `--quick`: no puedes preguntar — reporta que falta `.graph/` y termina.
 - Lee `.graph/INDEX.md` completo si el hook no lo inyectó ya. Si su línea de estado declara un `Esquema` menor al vigente arriba — o no declara el campo (base anterior al esquema 3) —, sugiere correr `/graph:init refresh` — no bloquea, la tarea sigue igual.
-- Si `INDEX.md` trae una línea `**En curso:** <slug> ...` cuyo slug (o el pedido que ese record registra) es LA MISMA tarea que vas a iniciar: NUNCA sobrescribas su task record — retómala sin preguntar: lee `.graph/tasks/<slug>.md` completo, reconstruye el estado real del working tree con `git diff`/`git status` contra la base del efecto #0 de ese record, añade al Diario la fila `retomada tras interrupción: <qué se encontró>`. Salta las fases 1 y 3-5 (mini-spec, preflight, tier y gate ya están aprobados en ese record), pero REHAZ la Fase 2 (es de solo lectura, no muta nada) para reconstruir el paquete de contexto que la Fase 6 necesita — ese paquete no sobrevive a una interrupción, el task record no lo guarda. Con el contexto reconstruido, continúa la ejecución desde donde el Diario quedó, directo a Fase 6.
-- Si en cambio esa línea `En curso` es de una tarea AJENA a la que vas a iniciar: pregunta con AskUserQuestion, 2 opciones — (a) **retomar**: abre su task record en `.graph/tasks/<slug>.md` y continúa esa tarea desde donde quedó el Diario, en vez de la nueva; (b) **cerrar como abandonada**: en ese task record fija Resultado → Estado: `abortado por usuario`, Evidencia final/Aprendizajes: sesión abandonada sin Fase 8, cerrada por la tarea nueva; quita la línea de `INDEX.md` y borra `.graph/.lock` si es de esa tarea; luego sigue con la tarea nueva. La mutación de la opción (b) — cerrar el record ajeno y limpiar su línea — es bitácora `.graph/` del sistema autorizada por la respuesta explícita del usuario: no es "ejecución" del pedido bajo las reglas duras 1 y 7, igual que la escritura de precondición de `--quick`. En modo no interactivo: reporta la tarea `En curso` encontrada (slug, tier, desde cuándo) y termina sin mutar nada.
+- Si `INDEX.md` trae una línea `**En curso:** <slug> ...` cuyo slug (o el pedido que ese record registra) es LA MISMA tarea que vas a iniciar: NUNCA sobrescribas su task record — retómala sin preguntar: lee `.graph/tasks/<slug>.md` completo, reconstruye el estado real del working tree con `git diff`/`git status` contra la base del efecto #0 de ese record, añade al Diario la fila `retomada tras interrupción: <qué se encontró>`. Salta las fases 1 y 3-5 (mini-spec, preflight, tier y gate ya están aprobados en ese record), pero REHAZ la Fase 2 (es de solo lectura, no muta nada) para reconstruir el paquete de contexto que la Fase 6 necesita — ese paquete no sobrevive a una interrupción, el task record no lo guarda. Con el contexto reconstruido, continúa la ejecución desde donde el Diario quedó, directo a Fase 6. **Excepción — record de ruta pelada-con-red** (header `· ruta pelada-con-red`): no hay Fase 0.5 ni Fase 2 que rehacer — la ruta ya elegida es un trinquete (regla dura 3); el contexto mínimo es directamente el pedido + INDEX, y se continúa directo a la ejecución directa de esa ruta (ver "Ruta pelada-con-red") desde donde el Diario quedó; la red (`tools/red.sh`) corre igual al cierre.
+- Si en cambio esa línea `En curso` es de una tarea AJENA a la que vas a iniciar: pregunta con AskUserQuestion, 2 opciones — (a) **retomar**: abre su task record en `.graph/tasks/<slug>.md` y continúa esa tarea desde donde quedó el Diario, en vez de la nueva; (b) **cerrar como abandonada**: en ese task record fija Resultado → Estado: `abortado por usuario`, Evidencia final/Aprendizajes: sesión abandonada sin Fase 8, cerrada por la tarea nueva; quita la línea de `INDEX.md` y borra `.graph/.lock` si es de esa tarea; luego sigue con la tarea nueva. La mutación de la opción (b) — cerrar el record ajeno y limpiar su línea — es bitácora `.graph/` del sistema autorizada por la respuesta explícita del usuario: no es "ejecución" del pedido bajo las reglas duras 1 y 7, igual que la escritura de precondición de `--quick`. En modo no interactivo: reporta la tarea `En curso` encontrada (slug, tier o ruta, desde cuándo) y termina sin mutar nada.
 - Si `.graph/.lock` existe y es de una tarea AJENA (slug distinto al que vas a iniciar, y no resuelto ya por el punto anterior): pregunta con AskUserQuestion — (a) **romper el lock**: solo si consideras la tarea muerta/abandonada; encadena con "cerrar como abandonada" de arriba sobre su task record y su línea `En curso` (si sigue presente), y además borra `.graph/.lock`; luego sigue con la tarea nueva; (b) **no iniciar**: termina sin tocar nada. En modo no interactivo: reporta el contenido del lock tal cual y termina sin mutar nada.
+
+## Fase 0.5 — Router objetivo (antes de la Fase 1)
+
+(Salta esta fase ENTERA si el tier ya viene fijado — `--tier S|M|L`/`--quick`/`--full` por línea de comando, o `tier:` en el archivo de `--gate-aprobado` si vino: sigue directo al pipeline completo, Fase 1, con ese tier ya fijado; dilo en el gate. Espejo de la cláusula equivalente de la Fase 4; no decide por sí sola si ese tier cuenta como "forzado" a efectos de la regla dura 4 — eso lo resuelve la Fase 5/6 como siempre.)
+
+El router NO estima "dificultad" (evidencia SOTA en contra: predictores a-priori con APGR 0.57-0.80, correlación experto↔costo real τb=0.32, ningún clasificador a-priori publicado que funcione en SWE-bench). Computa tres ejes objetivos y baratos, en la propia sesión, sin agentes extra:
+
+- **Eje A — Huecos** (preflight-lite adelantado): ¿el target está identificado sin ambigüedad (qué archivo/módulo/comportamiento)? ¿faltan credenciales, permisos o decisiones de diseño no tomadas? ¿el pedido admite una sola interpretación razonable? Cualquier hueco → rojo. Si el veredicto termina en pipeline completo, la Fase 3 (preflight completo) convierte el hueco en pregunta temprana como siempre — este eje la anticipa, no la reemplaza.
+- **Eje B — Oráculo** (solo lectura — nada se ejecuta aquí, regla dura 1): ¿existe un criterio ejecutable INDEPENDIENTE del agente que cubra el cambio? Verde si se cumple alguno de, todo por INSPECCIÓN de archivos, sin ejecutar nada: (1) `.graph/commands.md` lista un comando de suite ya VERIFICADO — se confía en esa verificación previa del init/refresh, no se re-corre aquí; (2) el pedido es del tipo "hacer pasar X" (X ya existe en el repo) o su criterio de aceptación es derivable a un check ejecutable — se lee el pedido y el archivo de X, no se ejecuta; (3) los tests de la zona a tocar tienen asserts reales a simple lectura — heurística de fuerza mínima: descarta por inspección suites vacías o triviales. **Regla dura del eje: los tests que el agente escriba en la propia sesión NO cuentan como oráculo** (nacen con oráculo débil con alta frecuencia). Ninguno de los tres, u oráculo débil → rojo.
+  - **Reforzable por caracterización (detección, no escritura):** si por lectura el área a tocar FUNCIONA hoy (hay tests que ya la ejercitan, aunque flojos, o lo confirma el propio pedido) pero su cobertura es débil, el eje puede dar igual verde: el router SOLO DETECTA esa condición y la DECLARA en el veredicto y en el gate compacto como "ruta pelada con refuerzo de caracterización" — la Fase 0.5 no escribe ni ejecuta nada. El refuerzo real (escribir los tests de caracterización desde el estado vigente, verificarlos, congelarlos) es POST-gate: primer paso de la ejecución (ver "Ruta pelada-con-red", punto 3). En escalación, esos tests se CONSERVAN — ver "Escalación por criterios".
+- **Eje C — Consecuencia (D)**: ¿el error puede causar daño MÁS ALLÁ del alcance del oráculo y de la inversa del ledger de efectos? Definición operativa: romper tests que antes pasaban NO es por sí solo alta consecuencia — eso es regresión, y la atrapa la red (`tests_intactos` + `suite_verde`). Alta consecuencia es lo que NINGÚN test ve y NINGUNA inversa deshace: efectos irreversibles o externos (datos, migraciones, publicación, gasto), código compartido crítico cuyo daño no cubre la suite, o trabajo en vuelo ajeno declarado en `**En curso:**` de `.graph/INDEX.md`. Fuentes para decidir: `.graph/constitution.md` completa y, si existe, la sección opcional `**Áreas de alta consecuencia:**` de `.graph/INDEX.md`. Cualquier señal de alta consecuencia → rojo, sin excepción.
+
+**Regla de ruteo (lexicográfica — no una fórmula ponderada):** ruta pelada-con-red SOLO SI los tres ejes dan verde/baja Y el pedido cabe en una sola pasada de contexto (precondición propia de este eje, de RECURSO — no de dificultad: el pedido crudo más los archivos que el Eje A identificó entran completos en una sola ventana de contexto, sin trocear la tarea en sub-invocaciones ni resúmenes con pérdida; se decide aquí mismo, sobre el pedido crudo, sin pasar por la mini-spec formal). **Cualquier eje en rojo → pipeline completo** (Fase 1 en adelante): los ejes no se compensan entre sí, un rojo no se promedia con dos verdes. **En cualquier duda: el MAYOR** — la misma regla vigente del tier (Fase 4); la duda nunca resuelve hacia lo barato.
+
+El veredicto queda registrado en el record, una línea por eje con su evidencia concreta (qué se miró, no solo el resultado):
+
+```
+Router (Fase 0.5): huecos=<verde|rojo> — <evidencia>
+Router (Fase 0.5): oráculo=<verde|rojo> — <evidencia, o "reforzado por caracterización: <qué se congeló>">
+Router (Fase 0.5): consecuencia=<baja|alta> — <evidencia>
+```
+
+Las tres en verde/baja → ruta pelada-con-red (sección siguiente). Cualquiera en rojo/alta → sigue a la Fase 1 con el pipeline completo.
+
+## Ruta pelada-con-red (cuando el router la habilita)
+
+Reemplaza las Fases 1-4 (mini-spec extendida, contexto amplio, preflight completo, tier): el router ya resolvió huecos/oráculo/consecuencia con evidencia equivalente. En su lugar:
+
+1. **Gate único, compacto** — mismo trato que la ruta trivial (Fase 5): un párrafo — `ruta pelada — oráculo: <comando+alcance>, scope: <archivos/área>, consecuencia baja` + la cláusula de escalación SIEMPRE presente: "si la red detecta suciedad: reinicio limpio y pipeline completo con el mismo pedido, mismos criterios y mismo scope — esta aprobación cubre ambas rutas" + "¿apruebas?". `--gate-aprobado` y su validación textual funcionan exactamente igual (Fase 5) — la cláusula de escalación es parte del mismo párrafo que ese archivo aprueba, no un campo aparte.
+2. **Baseline** — efecto #0 del ledger como siempre (Fase 6): base git (`stash create`/`HEAD`), inversa "restaurar los paths tocados y borrar los no-rastreados creados", estado `activo`. Siempre pre-todo, exista o no refuerzo de caracterización.
+3. **Refuerzo de caracterización (SOLO si el gate lo declaró)** — primer paso de la ejecución, ANTES de tocar nada del pedido propio: escribe los tests de caracterización desde el estado VIGENTE, verifica que pasan, y regístralos como **efecto #1** (lista de archivos creados; inversa = borrarlos), estado `activo`. **Baseline de red** = el árbol en ESTE punto exacto (después del efecto #1) — es contra ese punto que `tests_intactos` (punto 5) diffea, no contra el efecto #0. Si el gate no declaró refuerzo, la baseline de red es directamente el efecto #0.
+4. **Ejecución directa** — el pedido + INDEX como contexto; sin mini-spec extendida, sin workflow, sin record largo.
+5. **La red — `tools/red.sh`** al cierre: JSON de flags — `tests_intactos` (diff vs baseline de red sobre paths de test/conftest/fixtures), `suite_verde` (comando verificado de `commands.md`, suite COMPLETA), `scope_respetado` (archivos tocados ⊆ scope del gate), `oraculo_independiente` (los tests nuevos de la sesión se registran pero no sustituyen a la suite previa como criterio). Diagnóstico a stderr con el contrato `tests_fallidos:`/`diag:`. El JSON es la evidencia de la Verificación final.
+6. **Record compacto** (plantilla al final de este documento) con el veredicto del router (Fase 0.5) y el JSON de la red como evidencia.
+
+### Escalación por criterios (sin contadores — regla dura 2 intacta)
+
+- **Sucio** (cualquiera de: tests tocados, suite roja, scope violado) → escalación: **reinicio limpio** — revertir por el ledger de efectos al baseline (inversas en orden LIFO, efecto #0 al final); los tests de caracterización del efecto #1, si existen, se CONSERVAN (fueron aprobados en el gate y son exactamente el oráculo que el pipeline completo quiere) — su fila pasa a `conservado`, con inversa disponible si el humano pide reversión total — y entrar al pipeline completo desde la Fase 1, con el informe de `tools/red.sh` como insumo de la mini-spec. NUNCA continuar la sesión contaminada. Tras la reversión, registra una fila nueva en Efectos: `base re-tomada (reinicio limpio) = <hash>` — la regla "no dupliques el efecto #0" (Fase 6) aplica a retomar SIN reversión, no a este caso: acá el árbol cambió por el LIFO y el nuevo punto de partida debe quedar explícito.
+- **Un solo record, se EXTIENDE**: la escalación NO abre un task record nuevo. Al record compacto ya escrito se le AÑADE la sección `## Escalación a pipeline completo`, seguida de las secciones completas del pipeline (Mini-spec, Diario, Verificación final, Resultado) con la plantilla larga. Nada de lo ya escrito en el record compacto se reescribe (regla "jamás lo pises", Fase 6) — la tabla de Efectos es UNA SOLA y sigue numerando desde donde iba.
+- **Fricción menor** (archivos auxiliares benignos, warnings) → NO escala: se registra en el record (Diario/Resultado). Es la anti-sobre-escalación: la red no es un gate binario ingenuo.
+- **Retomar una pelada interrumpida**: si `.graph/INDEX.md` trae `En curso` de esta MISMA tarea en ruta pelada (Fase 0, mismo trato que cualquier retomada): NO se re-ejecuta la Fase 0.5 (la ruta ya elegida es trinquete, regla dura 3) — contexto mínimo = el pedido + INDEX, directo a la ejecución directa (punto 4) desde donde el Diario quedó; la red corre igual al cierre.
+- La escalación NUNCA amplía el scope; si el pipeline completo necesitara ampliarlo, eso es pregunta tardía/bloqueo por las reglas existentes (regla dura 5), no escalación.
+- Un solo salto de ruta (pelada → completa); dentro del pipeline completo rige la convergencia por criterios existente (Fase 6, tier M). La tasa de escalación se registra en el record de cada tarea; si es recurrente, también en `decisions.md` (Fase 8, punto 3) como métrica de calibración del router.
 
 ## Fase 1 — Mini-spec (capa prompt)
 
@@ -67,13 +110,13 @@ haga falta preguntar nada. Si igual surge algo en runtime: regla dura 5.
 
 ## Fase 4 — Clasificación de tier
 
-(Salta si hay tier forzado por flag; dilo en el gate.) Rúbrica:
+(Salta si hay tier forzado por flag; dilo en el gate.) El S/M/L ya NO estima riesgo (ese rol migró al router de la Fase 0.5): es puramente un **asignador de estructura** dentro del pipeline. Rúbrica solo-estructura — sin ningún criterio con sabor a "qué tan difícil parece": la cantidad de archivos NO se usa aquí para inferir riesgo o dificultad (ese conteo objetivo es del router, Fase 0.5). Más abajo, la ruta trivial sí conserva "un solo archivo" como cota de ALCANCE — una propiedad estructural distinta (extensión de la tarea), no una señal de dificultad — sin que esto la contradiga:
 
-- **S** — un solo frente de trabajo, verificable con una sola comprobación, cabe en un contexto → ejecución directa.
-- **M** — un solo frente, pero con criterios que pueden fallar y corregirse → requiere loop convergente.
-- **L** — múltiples subtareas independientes, expertise heterogénea, o volumen que excede un contexto → requiere grafo (Workflow).
+- **S** — un solo frente de trabajo, sin cadena serial entre etapas (nada depende del output de un paso previo) y sin acoplamiento con otras zonas → ejecución directa, una sola pasada.
+- **M** — un solo frente, pero con una cadena serial (etapas dependientes entre sí, p. ej. test → implementación → ajuste) → loop convergente.
+- **L** — múltiples frentes de trabajo heterogéneos (expertise o dominios distintos), cadena serial profunda (cada etapa depende del output de la anterior — la finalización se degrada etapa a etapa), o acoplamiento entre frentes que tocan la misma zona → requiere grafo (Workflow).
 
-En duda entre dos tiers: el MAYOR. Anota el porqué en una frase.
+En duda entre dos tiers: el MAYOR. Anota el porqué en una frase. (La escalada por estancamiento del loop M — Fase 6 — es lo que absorbe el error de este conteo si la estructura real difiere de la anticipada; el patrón se repite del router: gates estructurales, no una fórmula, con la escalada como red de seguridad.) El record registra el tier elegido junto al veredicto del router de la Fase 0.5 (huecos/oráculo/consecuencia) — permite medir desacuerdos router↔tier con el tiempo.
 
 Si el resultado es S con exactamente UN criterio de aceptación, UN solo
 archivo implicado Y el preflight (Fase 3) quedó SIN preguntas: marca la
@@ -96,6 +139,15 @@ condensa en un solo párrafo — pedido entendido + el criterio con su método +
 los anti-criterios en una línea citando la(s) C-N aplicable(s) + "¿apruebas?".
 Todo lo demás de esta fase (`--gate-aprobado`, validación textual, aprobación
 interactiva) aplica igual; solo cambia el formato de presentación.
+
+**Ruta pelada-con-red** (la Fase 0.5 la habilitó, antes incluso de llegar a esta fase): la
+pantalla se condensa aún más — un párrafo: `ruta pelada — oráculo: <comando+alcance>, scope:
+<archivos/área>, consecuencia baja` + la cláusula de escalación (siempre presente: "si la red
+detecta suciedad: reinicio limpio y pipeline completo con el mismo pedido, mismos criterios y
+mismo scope — esta aprobación cubre ambas rutas") + "¿apruebas?". Mismo trato de
+`--gate-aprobado` y validación textual que la ruta trivial — la cláusula de escalación es
+parte del mismo párrafo que ese archivo aprueba, no un campo aparte del archivo; el detalle
+completo de esta ruta está en la sección "Ruta pelada-con-red" (justo después de la Fase 0.5).
 
 **Si viene `--gate-aprobado <archivo>`:** lee el archivo (markdown simple: `pedido:`,
 `apruebo: sí`, y opcionales `tier:`/`budget:` — más una
@@ -126,14 +178,17 @@ presentar). **Nada muta antes del OK.**
 
 Si el task record `.graph/tasks/<YYYY-MM-DD>-<slug-corto>.md` NO EXISTE: créalo con la
 plantilla del final — o, si Fase 4 marcó **ruta trivial**, con la plantilla compacta que
-sigue a esa —, con su Mini-spec (aprobada) llena (el campo `Aprobación:` dice `gate
-interactivo`, o `aprobado por archivo <ruta>` si el gate vino de `--gate-aprobado`, Fase 5).
+sigue a esa —, o si la **Fase 0.5** habilitó la **ruta pelada-con-red**, con la plantilla
+compacta de esa ruta (última del documento) —, con su Mini-spec (aprobada) llena (el campo
+`Aprobación:` dice `gate interactivo`, o `aprobado por archivo <ruta>` si el gate vino de
+`--gate-aprobado`, Fase 5).
 Es la bitácora de la tarea. Si YA EXISTE (estás retomando la MISMA tarea, Fase 0):
 CONTINÚALO, jamás lo pises — no reescribas Mini-spec ni la tabla Efectos ya registrada,
 solo sigue añadiendo Diario/Efectos nuevos desde donde quedó. Escribe también en
 `.graph/INDEX.md`, bajo la línea de estado (`> Actualizado: ...`), la línea `**En curso:**
-<slug> (tier <X>, desde <YYYY-MM-DD>)` (<X> = el tier ya aprobado en el gate) — sáltalo si
-ya está (retomando). Crea `.graph/.lock` con el contenido `<slug> · <YYYY-MM-DD HH:MM>`
+<slug> (tier <X>, desde <YYYY-MM-DD>)` (<X> = el tier ya aprobado en el gate) — o, si la Fase
+0.5 habilitó la ruta pelada-con-red, `**En curso:** <slug> (ruta pelada, desde <YYYY-MM-DD>)`
+— sáltalo si ya está (retomando). Crea `.graph/.lock` con el contenido `<slug> · <YYYY-MM-DD HH:MM>`
 (fecha y hora de este arranque) — sáltalo si ya existe para este mismo slug (retomando).
 Todo commit que produzcas para esta tarea lleva el trailer `GRAPH-Task: <slug>` (navegable
 después con `git log --grep "GRAPH-Task: <slug>"`).
@@ -149,7 +204,7 @@ listarlo aparte; si retomas, no lo dupliques.
 regístralo ANTES de ejecutar, con inversa concreta y estado `activo`; sin
 inversa → `irreversible` (previsible: debía estar en el preflight/gate;
 imprevisto en runtime: pregunta tardía de la regla dura 5, antes de
-ejecutar). Todo esto es post-gate estricto (fases 1-4 no registran efectos,
+ejecutar). Todo esto es post-gate estricto (fases 0.5-4 no registran efectos,
 regla dura 1); la tabla con solo el #0 —fila única, sin nota aparte— es
 el caso normal.
 
@@ -239,6 +294,10 @@ sigues en fase 6.
 - Alcance:
 - Criterios (con método):
 - Anti-criterios (con método):
+- Router (Fase 0.5):
+  - huecos=<verde|rojo> — <evidencia>
+  - oráculo=<verde|rojo> — <evidencia, o "reforzado por caracterización: <qué se congeló>">
+  - consecuencia=<baja|alta> — <evidencia>
 - Tier: <elegido|forzado> — porqué:
 - Aprobación: <gate interactivo | aprobado por archivo `<ruta>`>
 
@@ -279,6 +338,10 @@ la validez).
 
 ## Mini-spec aprobada
 - Intención/alcance: <intención en una frase — qué entra/fuera si aplica>
+- Router (Fase 0.5):
+  - huecos=<verde|rojo> — <evidencia>
+  - oráculo=<verde|rojo> — <evidencia, o "reforzado por caracterización: <qué se congeló>">
+  - consecuencia=<baja|alta> — <evidencia>
 - Tier: S <elegido|forzado> — <porqué en media frase>
 - Criterio único (con método): <el criterio> — método: <cómo se verifica>
 - Anti-criterios (C-N) · Aprobación: <anti-criterios en una línea citando C-N> · <gate interactivo | aprobado por archivo `<ruta>`>
@@ -300,6 +363,56 @@ la validez).
 
 ## Resultado
 - Estado: en ejecución (transitorio) | convergió | abortado por usuario | cerrado por bloqueo (pre-aprobado) | reescopado
+- Evidencia final (con amenazas a la validez, breve): <resumen>
+- Commits: <hash-corto> <subject> (uno por línea) | ninguno
+- Aprendizajes (y preguntas tardías si hubo): <resumen>
+```
+
+## Plantilla compacta (ruta pelada-con-red — Fase 0.5)
+
+Mismas secciones del contrato, colapsadas. Aplica SOLO si la Fase 0.5 habilitó la ruta
+pelada-con-red (los tres ejes en verde/baja); cualquier otro caso usa la plantilla completa
+o la compacta de ruta trivial de arriba. El resto del contrato es idéntico: mismo esquema
+`.graph/`, mismas fases 7-8 (evidencia real, cierre que limpia `En curso`/`.lock`, nunca
+"ninguna" sin justificar en amenazas a la validez). La Verificación final es el JSON de
+`tools/red.sh` más la fila de anti-criterios, volcado a la misma tabla de 5 columnas que las
+demás plantillas. Si el gate declaró refuerzo de caracterización, la tabla Efectos suma la
+fila `1 | tests de caracterización: <archivos creados> | borrarlos | activo` (pasa a
+`conservado` al cerrar, converja o escale — ver "Escalación por criterios").
+
+```markdown
+# <slug> · <YYYY-MM-DD> · ruta pelada-con-red
+
+## Mini-spec aprobada
+- Pedido: <el pedido tal cual>
+- Router (Fase 0.5):
+  - huecos=verde — <evidencia>
+  - oráculo=verde (<nativo|reforzado por caracterización: qué se congeló>) — <evidencia>
+  - consecuencia=baja — <evidencia>
+- Gate: `ruta pelada — oráculo: <comando+alcance>, scope: <archivos/área>, consecuencia baja` · anti-criterios (C-N): <cita las C-N aplicables> · escalación: si la red detecta suciedad → reinicio limpio, mismo pedido/criterios/scope (esta aprobación cubre ambas rutas) · Aprobación: <gate interactivo | aprobado por archivo `<ruta>`>
+
+## Efectos
+| # | efecto | inversa | estado |
+|---|---|---|---|
+| 0 | base git (`stash create`/`HEAD`) | restaurar paths + borrar no-rastreados (excluye `.graph/`) | activo |
+
+## Diario
+| iteración | qué se hizo | diagnóstico | resultado |
+|---|---|---|---|
+| 1 | <qué se hizo> | <diagnóstico, o "sin fallos"> | <resultado> |
+
+## Verificación final
+| criterio/anti-criterio | método | comando/procedimiento ejecutado | evidencia | ✅/❌ |
+|---|---|---|---|---|
+| tests_intactos | `tools/red.sh` — diff vs baseline de red sobre paths de test/conftest/fixtures | `tools/red.sh` | <valor JSON `tests_intactos`> | ✅ |
+| suite_verde | `tools/red.sh` — comando verificado de `commands.md`, suite completa | `tools/red.sh` | <valor JSON `suite_verde`> | ✅ |
+| scope_respetado | `tools/red.sh` — archivos tocados ⊆ scope del gate | `tools/red.sh` | <valor JSON `scope_respetado`> | ✅ |
+| oraculo_independiente | `tools/red.sh` — tests nuevos de la sesión registrados, no sustituyen la suite previa | `tools/red.sh` | <valor JSON `oraculo_independiente`> | ✅ |
+| anti-criterios (C-N) | revisión del diff/scope contra cada C-N citada arriba | inspección del diff final | <intactos — o detalle de la excepción> | ✅ |
+
+## Resultado
+- Estado: en ejecución (transitorio) | convergió | escalado a pipeline completo (reinicio limpio) | abortado por usuario | cerrado por bloqueo (pre-aprobado)
+- Escalación: ninguna | sucio (<tests tocados|suite roja|scope violado>) → reinicio limpio, ver sección "## Escalación a pipeline completo" más abajo en este mismo record | fricción menor (no escaló): <qué>
 - Evidencia final (con amenazas a la validez, breve): <resumen>
 - Commits: <hash-corto> <subject> (uno por línea) | ninguno
 - Aprendizajes (y preguntas tardías si hubo): <resumen>
