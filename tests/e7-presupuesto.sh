@@ -177,13 +177,24 @@ EFECTOS_N=$(awk '/^## Efectos/{f=1;next} /^## /{f=0} f' "$RECB" | awk '
 ')
 [ "$EFECTOS_N" -eq 1 ] || { echo "FAIL E7-B3: tabla Efectos de $RECB tiene $EFECTOS_N filas (compacto espera solo #0)"; exit 1; }
 
-# Diario: 1 fila (una sola pasada, sin loop convergente).
+# Ruta detectada (r7): la pelada registra en el Diario un evento REAL por
+# fila (RED/GREEN, corrida de la red, fricciones) — no iteraciones de loop —
+# y su Verificación final trae por diseño 5 filas (4 flags de red.sh +
+# anti-criterios), así que sus cotas compactas son Diario 1..4 y contenido
+# ≤ 20; la trivial mantiene Diario = 1 y contenido ≤ 15.
+IS_PELADA=0; head -1 "$RECB" | grep -q 'ruta pelada-con-red' && IS_PELADA=1
+
+# Diario: trivial = 1 fila (una sola pasada); pelada = 1..4 (eventos reales).
 DIARIO_NB=$(awk '/^## Diario/{f=1;next} /^## /{f=0} f' "$RECB" | awk '
   !sep && /^\|[ :|-]+$/ && /-/ { sep=1; next }
   sep && /^\|/ { n++ }
   END { print n+0 }
 ')
-[ "$DIARIO_NB" -eq 1 ] || { echo "FAIL E7-B3: tabla Diario de $RECB tiene $DIARIO_NB filas (compacto espera 1)"; exit 1; }
+if [ "$IS_PELADA" -eq 1 ]; then
+  { [ "$DIARIO_NB" -ge 1 ] && [ "$DIARIO_NB" -le 4 ]; } || { echo "FAIL E7-B3: tabla Diario de $RECB tiene $DIARIO_NB filas (pelada espera 1..4 eventos)"; exit 1; }
+else
+  [ "$DIARIO_NB" -eq 1 ] || { echo "FAIL E7-B3: tabla Diario de $RECB tiene $DIARIO_NB filas (compacto trivial espera 1)"; exit 1; }
+fi
 
 # Total de líneas de CONTENIDO ≤ 15: bullets de Mini-spec + filas de datos de
 # Efectos/Diario/Verificación final + bullets de Resultado (sin contar
@@ -211,6 +222,7 @@ CONTENT_N=$(awk '
   }
   END { print n+0 }
 ' "$RECB")
-[ "$CONTENT_N" -le 15 ] || { echo "FAIL E7-B3: $RECB tiene $CONTENT_N líneas de contenido (compacto R4-B3 espera ≤~15)"; exit 1; }
+CONTENT_MAX=15; [ "$IS_PELADA" -eq 1 ] && CONTENT_MAX=20
+[ "$CONTENT_N" -le "$CONTENT_MAX" ] || { echo "FAIL E7-B3: $RECB tiene $CONTENT_N líneas de contenido (compacto espera ≤$CONTENT_MAX para esta ruta)"; exit 1; }
 
 echo "OK: E7 (presupuesto: Estado 'cerrado por bloqueo (pre-aprobado)', sin efectos activos, sin lock/En curso, sin cuelgue; B3: record compacto S con $EFECTOS_N efecto(s), $DIARIO_NB fila(s) de diario, $CONTENT_N líneas de contenido)"
