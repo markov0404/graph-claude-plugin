@@ -3,3 +3,4 @@ tests/*.out
 bench/out/
 bench/seq/out/
 __pycache__/
+bench/out-ablacion/
