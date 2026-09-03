@@ -258,7 +258,9 @@ despachado consumen presupuesto, y un presupuesto inferior al costo evidente
 de UNA iteración (pocos miles de tokens) queda agotado al cerrar la primera
 — si esa primera iteración no convergió, cierra por bloqueo; si la tarea ya
 convergió, cierra convergida (el presupuesto limita el trabajo restante,
-no anula un éxito ya logrado). Con `--budget <tokens>`: revisa el gasto al cerrar cada iteración/fase; al
+no anula un éxito ya logrado) y el record documenta el agotamiento con la
+frase literal `presupuesto agotado` (en la fila del Diario donde ocurrió
+y/o en Resultado — formato fijo, no un sinónimo). Con `--budget <tokens>`: revisa el gasto al cerrar cada iteración/fase; al
 agotarse, pausa, presenta estado + evidencia de avance y pregunta: ampliar o
 abortar. **En modo `--gate-aprobado` sin quien responda:** no preguntes —
 es el mismo bloqueo tardío de la regla dura 5 (excepción `--gate-aprobado`):

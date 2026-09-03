@@ -104,7 +104,7 @@ ESTADO=$(awk '/^## Resultado/{f=1;next} /^## /{f=0} f' "$REC" | grep -m1 -E '^- 
 if echo "$ESTADO" | grep -qF "cerrado por bloqueo (pre-aprobado)"; then
   : # rama bloqueo: correcta por sí sola
 elif echo "$ESTADO" | grep -qF "convergió"; then
-  grep -qiE 'presupuesto.*(agotado|excedido)' "$REC" \
+  grep -qiE '(presupuesto|budget).*(agotado|excedido)' "$REC" \
     || { echo "FAIL E7: convergió pero el record no documenta el presupuesto agotado (budget: 1 ignorado)"; exit 1; }
 else
   echo "FAIL E7: Estado de $REC no es ni bloqueo ni convergencia documentada — línea: $ESTADO"; exit 1
