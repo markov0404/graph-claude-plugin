@@ -9,7 +9,7 @@ Argumentos: "$ARGUMENTS" (vacío = setup normal; "refresh" = re-escaneo directo)
 Tu trabajo es generar o refrescar `.graph/`, la base de conocimiento de ESTE
 repo. Recorre las fases en orden. Todo lo que escribas va en español.
 
-Esquema de `.graph/` vigente: 3
+Esquema de `.graph/` vigente: 4
 
 ## Fase 1 — Detección previa
 
@@ -98,7 +98,7 @@ Crea los archivos con EXACTAMENTE estos formatos (rellenando con lo escaneado):
 
 ```markdown
 # GRAPH · <nombre del proyecto>
-> Actualizado: <YYYY-MM-DD> · Estado: completo · Esquema: 3
+> Actualizado: <YYYY-MM-DD> · Estado: completo · Esquema: 4
 
 **Qué es:** <1-2 frases>
 **Stack:** <lenguajes y frameworks clave>
@@ -184,6 +184,90 @@ bullets es mejor que bullets inventados:
 `.graph/decisions.md`: título `# Log de decisiones`, tabla `| fecha | decisión | porqué |` (arranca con la fila del propio init: qué se decidió sobre git).
 
 `.graph/tasks/README.md`: una línea: `Un archivo por tarea de /graph:do — ver la plantilla en el skill do.`
+
+## Fase 4.5 — Siembra del mapa de oráculo
+
+Corre `tools/oraculo-map.sh scan <raíz del repo>` (bash+python3 stdlib,
+instalable, cero dependencias externas — mismo patrón contractual de
+archivo-de-test que usa `red.sh`, fijado ahí para que ningún tool derive
+por su cuenta): emite TSV `archivo<TAB>n_tests<TAB>fuerza<TAB>hash7`, una
+línea por archivo de test hallado. Es tooling propio de GRAPH, de solo
+lectura y sin efectos secundarios — igual que `tools/symbol-map.sh`, no es
+un comando del proyecto, no entra en `commands.md` y no compite con la
+exclusividad de ejecución de la Fase 3. Esta fase corre SIEMPRE en refresh
+— sin importar si el usuario eligió "todo" o "solo lo desactualizado" en
+la Fase 1 (mismo criterio que el re-cálculo de `tools/symbol-map.sh` en
+Fase 4): el `scan` es dato barato y objetivo; solo el etiquetado en prosa
+se hace sobre lo nuevo o cambiado. Si el script no existe o falla: escribe
+en `oraculo.md` una nota `_sin oraculo-map disponible: <motivo breve>_` en
+el lugar de la tabla y seguí — la ausencia se resuelve acá (degradación,
+nunca bloqueo), igual que la falta de `symbol-map.sh` en `map.md`.
+
+Con el TSV en mano, LEE cada archivo de test que `scan` reportó (solo
+lectura, como toda esta fase) y etiquetá su área/comportamiento en prosa
+corta: es la parte semántica que el tool no puede hacer. Una fila por
+archivo de test es la convención por defecto (ya es, en la inmensa
+mayoría de repos, la unidad natural de "área coherente" del CONTRATO —
+agrupar más de un archivo bajo una sola fila solo si de verdad describen
+el mismo comportamiento). Por fila: `checks` = `<archivo> (<n_tests>
+tests)` — si la fila agrupa más de un archivo, listalos todos separados
+por coma, en el MISMO orden en que vas a listar sus hashes en `vigencia`;
+`fuerza` = la que reportó `scan` (fila de un solo archivo: esa fuerza tal
+cual; fila que agrupa varios archivos: `fuerte` solo si TODOS lo son — un
+solo archivo `débil` en el grupo baja la fila entera a `débil`), nunca la
+reescribas a mano; `vigencia` = lista de `hash7` que reportó `scan`, UNO
+POR archivo de `checks`, en ese mismo orden, separados por coma (fila de
+un solo archivo: un solo `hash7`, sin coma — ruling r8: el hash
+concatenado de un diseño anterior era incalculable con `verify` por
+archivo, de ahí la lista); `origen` = `init <fecha de hoy>`.
+
+Escribe (o refresca) `.graph/oraculo.md` con EXACTAMENTE este formato — es
+el CONTRATO de la ronda 8, vinculante, no lo alteres:
+
+```markdown
+# Mapa de oráculo · <proyecto>
+> Esquema-oraculo: 1 · Generado: /graph:init <fecha> · Última tarea: <slug o "ninguna">
+
+| área / comportamiento | checks | fuerza | vigencia | origen |
+|---|---|---|---|---|
+| <etiqueta de intención en prosa corta> | <archivo> (<n> tests) | fuerte\|débil | <hash7> | init <fecha> |
+
+**Huecos conocidos (sin check ejecutable):** <una línea por hueco, con origen al final: `- <comportamiento> (tarea <slug>)` — init NUNCA crea ni borra huecos; solo los gestiona /graph:do Fase 8>
+```
+
+**Arranque** (sin `.graph/oraculo.md` previo, en un `.graph/` recién
+creado): una fila por archivo que `scan` encontró; "Huecos conocidos"
+arranca en "ninguno todavía" — init solo ve tests que ya existen, no
+adivina comportamientos sin test (eso lo descubre `/graph:do` en su
+Fase 8, al tocar una zona real).
+
+**Refresh:** si `.graph/oraculo.md` no existe todavía (base de un esquema
+anterior a este): creálo esta primera vez con el mismo criterio de
+arranque — es la migración de esquema 3→4, misma regla "créalo solo esa
+primera vez" de la Fase 4. Si YA existe: JAMÁS pises una fila cuyo
+`origen` sea `tarea *` (las escribió `/graph:do`, son historia real de
+tareas — C1). Re-sembrá por ARCHIVO, no por fila (evita duplicar/sombrear
+filas de tarea): primero armá el conjunto de archivos que ya figuran en
+`checks` de CUALQUIER fila `origen: tarea *` — esos archivos quedan
+EXCLUIDOS del re-sembrado entero, los administra `/graph:do`, no se les
+toca ni `hash7` ni fuerza desde acá. Con el resto: borrá TODAS las filas
+de `origen` `init <fecha anterior>` y regeneralas desde cero a partir del
+`scan` actual, aplicando la misma convención de agrupación de la Fase 4.5
+de arriba (un archivo de test que desapareció ya no tiene fila; uno nuevo
+se agrega; uno modificado actualiza su `hash7`/`fuerza`; si una fila
+agrupada pierde alguno de sus archivos por quedar excluido, re-sembrala
+solo con los que le quedan). Actualizá solo `Generado:` en la línea de
+estado (`/graph:do` es quien escribe `Última tarea:`, en su Fase 8 — no lo
+toques acá). La sección "Huecos conocidos" es enteramente de
+`/graph:do` (formato `- <comportamiento> (tarea <slug>)`): init NUNCA crea
+ni borra huecos, tampoco en refresh — la deja EXACTAMENTE como está, byte
+a byte, esté vacía ("ninguno todavía") o ya tenga entradas reales.
+
+Re-normalización sin pérdida (mismo principio que INDEX/map.md, C5): si la
+tabla crece más de ~1 pantalla, movés las áreas ÍNTEGRAS a un nodo
+enlazado nuevo (nunca a `constitution.md`/`decisions.md`/`tasks/`, son
+nodos protegidos); la sección "Huecos conocidos" SIEMPRE queda en
+`oraculo.md`, el archivo raíz — nunca se trunca ni se resume con pérdida.
 
 ## Fase 5 — Corrección temprana
 
