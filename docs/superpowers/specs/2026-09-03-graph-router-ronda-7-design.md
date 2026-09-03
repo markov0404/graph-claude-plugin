@@ -24,9 +24,25 @@ El router NO computa "dificultad" (evidencia débil). Computa **tres ejes valida
 
 - **Eje A — Huecos (ambigüedad/subespecificación):** preflight-lite adelantado: ¿el target está identificado sin ambigüedad (qué archivo/módulo/comportamiento)? ¿faltan credenciales, permisos o decisiones no tomadas? ¿el pedido admite una sola interpretación razonable? Cualquier hueco → **pipeline completo** (donde el preflight completo de la Fase 3 lo convierte en pregunta temprana, como hasta ahora).
 - **Eje B — Oráculo:** ¿existe un criterio ejecutable INDEPENDIENTE del agente que cubra el cambio? Concretamente: (1) suite del repo corrible con el comando verificado de `commands.md`; (2) el pedido es del tipo "hacer pasar X" o el criterio de aceptación es derivable a un check ejecutable; (3) los tests de la zona a tocar tienen asserts reales (heurística de fuerza mínima: no suites vacías/triviales). Regla dura: **los tests que el agente escriba en la propia sesión no cuentan como oráculo** (80.2% nacen débiles). Sin oráculo o con oráculo débil → **pipeline completo** (la disciplina de proceso reemplaza al oráculo ausente).
-- **Eje C — Consecuencia (D):** ¿la tarea toca un área de alta consecuencia? Fuentes: la constitution del repo, una sección opcional curada `**Áreas de alta consecuencia:**` en `.graph/INDEX.md` (migraciones, datos, publicación, código compartido crítico, trabajo en vuelo declarado en En-curso ajeno). Alta consecuencia → **pipeline completo**, sin excepción.
+- **Eje C — Consecuencia (D):** ¿la tarea puede causar daño **más allá del alcance del oráculo y de la inversa del ledger**? Definición operativa: romper tests que antes pasaban NO es por sí solo alta consecuencia — eso es regresión, y la atrapa la red (suite completa + tests intactos); alta consecuencia es lo que ningún test ve y ninguna inversa deshace: efectos irreversibles o externos (datos, migraciones, publicación, gasto), código compartido crítico cuyo daño no cubre la suite, trabajo en vuelo ajeno declarado en En-curso. Fuentes: la constitution del repo y una sección opcional curada `**Áreas de alta consecuencia:**` en `.graph/INDEX.md`. Alta consecuencia → **pipeline completo**, sin excepción.
 
-**Regla de ruteo:** ruta pelada-con-red **solo si** (sin huecos) ∧ (oráculo fuerte e independiente) ∧ (consecuencia baja) ∧ (el contexto necesario cabe — señal existente de la ruta trivial). En cualquier duda: el mayor (regla vigente del tier). El veredicto del router y sus tres ejes quedan registrados en el record (una línea por eje con la evidencia).
+**Eje B reforzable (tests de caracterización):** si el área a tocar FUNCIONA hoy pero su cobertura es débil, la ruta pelada admite un pre-paso barato: escribir tests de caracterización **desde el estado vigente, ANTES del cambio**, verificar que pasan, y congelarlos en el baseline (efecto #0) — desde ahí `tests_intactos` los protege como a cualquier test. Estos SÍ cuentan como oráculo pese a ser escritos por el agente: capturan el comportamiento que ya funciona, no validan el cambio propio (el hallazgo de All Smoke No Alarm es sobre tests nacidos para aprobar el propio parche); la heurística de fuerza mínima les aplica igual. Es la técnica clásica de caracterización (Feathers) convertida en escalón del router: ataca directamente el punto ciego tipo t6 (regresión en zona sin cobertura).
+
+**Regla de ruteo:** ruta pelada-con-red **solo si** (sin huecos) ∧ (oráculo fuerte e independiente, nativo o reforzado por caracterización) ∧ (consecuencia baja) ∧ (el contexto necesario cabe — señal existente de la ruta trivial). En cualquier duda: el mayor (regla vigente del tier). El veredicto del router y sus tres ejes quedan registrados en el record (una línea por eje con la evidencia).
+
+### Por qué gates y no una fórmula de complejidad
+
+Los tres ejes NO son dimensiones aditivas de una "complejidad" escalar, y combinarlos en `C = w1·huecos + w2·oráculo + w3·consecuencia` recrearía exactamente el predictor que el SOTA refutó. Cada eje juega un rol distinto en el modelo de costo esperado:
+
+```
+costo_esperado(ruta) = costo_ejecución(ruta) + P(sucio) × P(inadvertido | sucio) × D
+```
+
+- **Huecos** multiplica `P(sucio)` (la ambigüedad multiplica la trampa 10-20× — EvilGenie).
+- **Oráculo** gobierna `P(inadvertido | sucio)`: no reduce la chance de fallar — convierte el fallo silencioso en fallo atrapado (D colapsa al costo de un reintento). Con oráculo fuerte, los otros riesgos se absorben (E3); sin oráculo, hasta un hueco chico es fatal.
+- **Consecuencia** ES `D`: no mide dificultad, mide el precio de equivocarse.
+
+Las contribuciones **no son constantes entre problemas** — ni siquiera son términos del mismo tipo (probabilidad × detección × magnitud): en tareas con spec ambigua domina huecos; en refactors sobre código vivo domina el oráculo; en tareas que tocan producción domina D. Y son multiplicativas, no aditivas: por eso la decisión correcta es **lexicográfica** (cualquier eje en rojo → pipeline), no una suma ponderada con umbral. Los "pesos" reales (P̂ y D por tipo de tarea y por repo) no se inventan en este spec: se **miden** — el record registra veredicto del router + resultado de la red + escalaciones, y ese telemetría acumulada en `.graph/` es la que habilitaría, a futuro, el umbral calibrado τ*=(c_caro−c_barato)/κ de R2V por repo (declarado en No-objetivos hasta tener datos).
 
 ### Ruta pelada-con-red
 
@@ -42,9 +58,13 @@ El router NO computa "dificultad" (evidencia débil). Computa **tres ejes valida
 - **Fricción menor** (archivos auxiliares benignos, warnings) → NO escala: se registra en el record. Esto es la anti-sobre-escalación de R2V: la red no es un gate binario ingenuo.
 - Un solo salto de ruta (pelada→completa); dentro del pipeline completo rige la convergencia por criterios existente. La **tasa de escalación** se registra (record + línea en decisions.md si es recurrente) como métrica de calibración del router.
 
+### Rúbrica de tier reescrita: solo estructura
+
+El S/M/L pierde su rol de estimador de riesgo (migra al router) y queda como **asignador de estructura dentro del pipeline**: la rúbrica se reescribe en lenguaje puramente estructural y contable — nº de frentes de trabajo heterogéneos, profundidad de la cadena serial (etapas donde cada una depende del output de la anterior — RAMP: 100%→20% de finalización por etapa), acoplamiento de la zona a tocar (frentes interdependientes — Breakpoint: 55%→0%). Se poda cualquier criterio con sabor a "qué tan difícil parece" (tamaño, cantidad de archivos como proxy de riesgo): las señales refutadas no quedan ni como criterio informal. "En duda, el mayor" y la escalación por estancamiento se conservan — son lo que absorbe el error del conteo (patrón E3). El record registra tier elegido + veredicto del router, para medir desacuerdos con el tiempo.
+
 ### Cambios de superficie
 
-- `skills/do/SKILL.md`: Fase 0.5 + ruta pelada-con-red + escalación (secciones nuevas, mínimas); la ruta trivial existente queda como caso intermedio (con mini-spec compacta) y la pelada como escalón inferior.
+- `skills/do/SKILL.md`: Fase 0.5 + ruta pelada-con-red + escalación (secciones nuevas, mínimas) + rúbrica de tier reescrita estructural; la ruta trivial existente queda como caso intermedio (con mini-spec compacta) y la pelada como escalón inferior.
 - `tools/red.sh` + test propio (estilo test-symbol-map.sh, casos: limpio, test tocado, suite roja, scope violado, tests nuevos del agente no cuentan).
 - `skills/init/SKILL.md` + esquema: sección opcional `**Áreas de alta consecuencia:**` en INDEX (creación en init/refresh si el repo la amerita; nunca obligatoria).
 - `.graph/` del propio repo: registrar la decisión de diseño en decisions.md al cerrar.
