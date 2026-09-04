@@ -45,7 +45,7 @@ paquetes): en vez de 4 agentes globales, usa el Workflow tool con un agente
 por paquete/área más un sintetizador (esta instrucción de skill constituye el
 opt-in del usuario para usar Workflow).
 
-Además, en paralelo a los agentes Explore, ejecuta `tools/symbol-map.sh
+Además, en paralelo a los agentes Explore, ejecuta `${CLAUDE_PLUGIN_ROOT}/tools/symbol-map.sh
 <raíz del repo>` (bash, cero dependencias externas) para obtener el listado
 objetivo de símbolos de nivel superior por archivo. Es lectura pura — no
 modifica nada del repo — y su salida es la que la Fase 4 escribe, tal cual,
@@ -61,7 +61,7 @@ Toma los candidatos a build/test/lint de la fase 2 y EJECÚTALOS uno a uno:
 - Falla por prerrequisito → entra con "no — requiere: <qué>" (p.ej. "requiere: npm install"). NUNCA lo registres como funcionando.
 - Riesgoso o largo (deploy, migraciones, publish) → NO lo corras; entra como "no verificado (riesgoso)".
 
-`tools/symbol-map.sh` (Fases 2/4) no es un comando del proyecto a verificar:
+`${CLAUDE_PLUGIN_ROOT}/tools/symbol-map.sh` (Fases 2/4) no es un comando del proyecto a verificar (vive en el PLUGIN, no en el repo destino — igual que `red.sh` y `oraculo-map.sh`):
 es tooling propio de GRAPH, de solo lectura y sin efectos secundarios — no
 entra en `commands.md`.
 
@@ -187,7 +187,7 @@ bullets es mejor que bullets inventados:
 
 ## Fase 4.5 — Siembra del mapa de oráculo
 
-Corre `tools/oraculo-map.sh scan <raíz del repo>` (bash+python3 stdlib,
+Corre `${CLAUDE_PLUGIN_ROOT}/tools/oraculo-map.sh scan <raíz del repo>` (bash+python3 stdlib,
 instalable, cero dependencias externas — mismo patrón contractual de
 archivo-de-test que usa `red.sh`, fijado ahí para que ningún tool derive
 por su cuenta): emite TSV `archivo<TAB>n_tests<TAB>fuerza<TAB>hash7`, una
