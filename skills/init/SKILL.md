@@ -60,6 +60,7 @@ Toma los candidatos a build/test/lint de la fase 2 y EJECÚTALOS uno a uno:
 - Corre bien → entra a `commands.md` con "sí" en verificado y su output esperado resumido (p.ej. "1 passing").
 - Falla por prerrequisito → entra con "no — requiere: <qué>" (p.ej. "requiere: npm install"). NUNCA lo registres como funcionando.
 - Riesgoso o largo (deploy, migraciones, publish) → NO lo corras; entra como "no verificado (riesgoso)".
+- **Suite larga (presupuesto de 5 minutos por comando, medido en repos reales):** si una suite de tests no termina en ~5 minutos, NO la esperes hasta el final — cortala y registrala como `parcial — <N> tests en <T>, suite completa excede 5 min` con el subconjunto que sí corrió (p.ej. un subdirectorio o `-x` sobre una selección declarada), y SEGUÍ con el resto del init. Nunca dejes el init a medias por esperar una suite: un `.graph/` incompleto (INDEX sin actualizar, esquema viejo) es peor que un comando registrado como parcial. Origen: medido en un repo real de 1831 tests / 22 min, donde esperar la suite consumió la sesión entera y dejó el refresh sin terminar.
 
 `${CLAUDE_PLUGIN_ROOT}/tools/symbol-map.sh` (Fases 2/4) no es un comando del proyecto a verificar (vive en el PLUGIN, no en el repo destino — igual que `red.sh` y `oraculo-map.sh`):
 es tooling propio de GRAPH, de solo lectura y sin efectos secundarios — no
