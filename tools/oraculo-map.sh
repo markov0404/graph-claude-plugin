@@ -275,7 +275,9 @@ scan_mode() {
   [ -d "$dir" ] || fail_closed "scan: '$dir' no es un directorio"
   dir="$(cd "$dir" && pwd -P)"
 
-  local -a prune_expr=( \( -name .git -o -name node_modules -o -name .graph \) -prune -o )
+  # Artefactos de ejecución podados: nunca son oráculo y en un repo real
+  # inundan el mapa (medido en un repo grande externo: 155 de 307 filas eran __pycache__/*.pyc).
+  local -a prune_expr=( \( -name .git -o -name node_modules -o -name .graph -o -name __pycache__ -o -name .pytest_cache -o -name .tox -o -name .venv -o -name venv -o -name dist -o -name build -o -name .mypy_cache -o -name .ruff_cache \) -prune -o )
 
   local find_files find_links find_err
   find_files="$(mktemp)"; SCAN_TMP+=("$find_files")
@@ -304,6 +306,10 @@ scan_mode() {
   while IFS= read -r -d '' f; do
     rel="${f#"$dir"/}"
     printf '%s' "$rel" | grep -qE "$TEST_PATTERN" || continue
+    # extensiones compiladas/binarias: fuera aunque el path matchee el patrón
+    case "$rel" in
+      *.pyc|*.pyo|*.so|*.o|*.class|*.jar|*.wasm) continue ;;
+    esac
     case "$rel" in
       *$'\t'*|*$'\n'*)
         fail_closed "archivo de test con TAB o salto de línea en el nombre (no soportado, TSV quedaría malformado): $(printf '%q' "$rel")"

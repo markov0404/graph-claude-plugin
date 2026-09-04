@@ -499,4 +499,17 @@ EOF
     || { echo "FAIL (s): diag debería mencionar que fue find quien falló. stderr: $(cat "$ERR_S")"; exit 1; }
 fi
 
-echo "OK: test-oraculo-map.sh — todos los casos pasaron"
+echo "— caso (t): artefactos de ejecución podados (__pycache__/*.pyc, .pytest_cache) — hallazgo un repo grande externo"
+REPO_T="$(mktemp -d -p "$SCRATCH_ROOT")"
+mkdir -p "$REPO_T/tests/__pycache__" "$REPO_T/tests/.pytest_cache/v/cache"
+printf 'def test_real():\n    assert 1 == 1\n' > "$REPO_T/tests/test_real.py"
+printf '\x03\xf3 binario' > "$REPO_T/tests/__pycache__/test_real.cpython-311.pyc"
+printf 'x' > "$REPO_T/tests/.pytest_cache/v/cache/lastfailed"
+printf 'x' > "$REPO_T/tests/test_suelto.pyc"
+OUT_T="$(mktemp -p "$SCRATCH_ROOT")"
+"$TOOL" scan "$REPO_T" >"$OUT_T" 2>/dev/null
+[ "$(wc -l < "$OUT_T")" -eq 1 ] || { echo "FAIL (t): se esperaba 1 fila, hubo $(wc -l < "$OUT_T"): $(cat "$OUT_T")"; exit 1; }
+grep -q "^tests/test_real.py" "$OUT_T" || { echo "FAIL (t): la fila no es el test real: $(cat "$OUT_T")"; exit 1; }
+! grep -qE "pycache|[.]pyc|pytest_cache" "$OUT_T" || { echo "FAIL (t): artefactos no podados: $(cat "$OUT_T")"; exit 1; }
+
+echo "OK: test-oraculo-map.sh — todos los casos pasaron (incl. poda de artefactos)"
