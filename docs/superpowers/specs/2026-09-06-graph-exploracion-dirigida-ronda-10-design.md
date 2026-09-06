@@ -58,6 +58,26 @@ Re-normalización sin pérdida como todo nodo del esquema.
 
 Antes de ejecutar un intento exploratorio, el nodo declara **qué lo refutaría**. Sin ese compromiso previo, siempre se puede racionalizar que en realidad no falló. Es la metodología que el usuario ya practica a mano en un repo grande externo (preregistro, invariantes canonicos numerados, cementerio ejecutable); acá se abarata la contabilidad, no se inventa el método.
 
+### 5.bis Disparador de anomalía: el "¿por qué?" forzado (la relevancia como consecuencia)
+
+La relevancia en territorio inexplorado no es una facultad previa: **emerge de investigar una divergencia**. Fleming no supo de antemano que el moho importaba — vio que pasó algo que no debía pasar y preguntó por qué. Miles de placas contaminadas terminaron en la basura porque para quien las tiró no había expectativa declarada contra la cual la contaminación fuera anómala: era ruido.
+
+**El preregistro es lo que convierte ruido en anomalía.** Con la expectativa explícita (punto 5), la divergencia es detectable; sin ella, no existe.
+
+Regla dura nueva: **una divergencia no se arregla en silencio.**
+
+1. **Detección**: mecánica donde hay número (un ejemplo que pasa cuando debía fallar, un costo N× fuera de lo previsto, una métrica fuera del rango preregistrado); declarada donde no lo hay.
+2. **Registro**: entra al grafo como nodo `anomalía` con dos campos obligatorios — *qué se esperaba* y *qué se observó*.
+3. **Bifurcación presentada al humano** (el juicio es suyo; la obligación de preguntarlo es del sistema):
+   - **(a) el error es nuestro** → se corrige por el camino normal, y el nodo queda como refutación de nuestra propia implementación (evita repetir el mismo error).
+   - **(b) la expectativa estaba equivocada** → es conocimiento nuevo: se revisa el invariante o la hipótesis del dominio, y el nodo pasa a `refuta`/`sostiene` sobre ella.
+
+La rama (b) es donde aparece la relevancia. Y decidir entre (a) y (b) **solo se puede hacer viendo el conjunto** —qué se intentó, qué se refutó, qué invariantes aguantaron—: es la justificación más fuerte del grafo de exploración, y lo que ningún grafo de los que medimos antes podía dar.
+
+**Métrica propia:** proporción de anomalías que terminaron en (b). Si el 100% termina en (a), o el dominio no tenía nada que enseñar, o el sistema está racionalizando divergencias como errores propios — ambas cosas hay que poder verlas.
+
+Nota de alcance honesta: esto mecaniza la relevancia *emergente* (dada una expectativa, investigar su violación). NO mecaniza elegir sobre qué vale la pena tener expectativas — eso sigue siendo del humano, y sigue en No-objetivos.
+
 ### 6. Auto-aplicación (REQUISITO, no opcional)
 
 La ronda se valida usando su propia maquinaria **sobre GRAPH mismo**, apuntada al grand challenge que el campo declaró abierto (*Intent Formalization at repo scale*, arXiv 2603.17150). Es territorio genuinamente inexplorado —por definición del propio campo—, así que es el caso de prueba honesto: la sonda de SOTA, la cuota de rareza y el grafo de exploración corren sobre la pregunta "cómo capturar intención sin precedente", y lo que se refute queda registrado con su evidencia.
@@ -71,8 +91,9 @@ Dos brazos sobre los mismos pedidos exploratorios: **X** (maquinaria completa) v
 1. **Repetición de refutados**: propuestas que repiten un intento ya descartado. Criterio: X → 0; X−g > 0. Si ambos dan 0 porque nunca hubo refutados previos, el experimento no es válido — hay que sembrar el grafo con refutaciones reales primero (las de la auto-aplicación sirven).
 2. **Solapamiento entre brazos**: conjunto de propuestas de X vs X−g. Criterio: **solapamiento < 60%**. Si X propone casi lo mismo que X−g, la maquinaria es decorativa. *Este es el criterio falsador.*
 3. **Elección humana**: en cuántos casos el humano elige una propuesta que NO es la obvia. Se reporta tal cual salga; con N chico es anécdota declarada, no efecto.
-4. **No-regresión del régimen conocido**: en `conocido`, costo dentro de **1.15×** de la config E de r9. La exploración no puede filtrarse al camino barato.
-5. Suite del plugin intacta; contrato de celda sin divergencia; cero deps; corridas fuera del árbol.
+4. **Anomalías investigadas**: de las divergencias registradas durante la corrida, qué proporción terminó en la rama (b) —expectativa revisada— y qué proporción en (a) —error propio—. Se reporta tal cual salga; 100% en (a) es señal de alarma, no de éxito.
+5. **No-regresión del régimen conocido**: en `conocido`, costo dentro de **1.15×** de la config E de r9. La exploración no puede filtrarse al camino barato.
+6. Suite del plugin intacta; contrato de celda sin divergencia; cero deps; corridas fuera del árbol.
 
 **Qué falsaría la ronda:** solapamiento ≥60% entre brazos. Significaría que el grafo de exploración es otro acelerador decorativo y hay que enterrarlo junto a los cuatro anteriores, con su medición publicada.
 
