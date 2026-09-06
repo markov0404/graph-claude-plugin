@@ -203,7 +203,7 @@ fi
 # la salida varia: se observaron 18, 18, 21 y 26 sobre el MISMO caso. Peor, el
 # total no distinguia un defecto real (bullet prescrito faltante o duplicado) de
 # evidencia legitima de mas (una fila por anti-criterio en vez de una sola).
-# Ahora cada cota sale del contrato de `references/plantillas-record.md` y el
+# Ahora cada cota sale del contrato de la sección "Plantillas del task record" de `SKILL.md` y el
 # fallo dice QUE seccion se desbordo.
 
 # Bullets de Resultado: el conjunto EXACTO que prescribe la plantilla de la ruta.

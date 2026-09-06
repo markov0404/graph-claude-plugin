@@ -56,7 +56,7 @@ Router (Fase 0.5): consecuencia=<baja|alta> — <evidencia>
 Router (Fase 0.5): régimen=<conocido|inexplorado> — <"conocido (default, sin declaración)" | "conocido (sugerido inexplorado por el router: <señales> — no activado)" | "inexplorado — declarado vía <--explorar|archivo|pedido>">
 ```
 
-Las tres primeras en verde/baja Y régimen=`conocido` → ruta pelada-con-red (sección siguiente). Cualquiera en rojo/alta, o régimen=`inexplorado` → sigue a la Fase 1 con el pipeline completo. (Nota de costo: la cuarta línea es un reporte de un valor ya conocido desde la Fase 0, no un cómputo nuevo — registrarla no encarece el régimen conocido. Las plantillas compactas (`references/plantillas-record.md`) —ruta trivial, ruta pelada— la OMITEN a propósito: esas rutas exigen régimen=conocido siempre, así que sería una línea sin información nueva.)
+Las tres primeras en verde/baja Y régimen=`conocido` → ruta pelada-con-red (sección siguiente). Cualquiera en rojo/alta, o régimen=`inexplorado` → sigue a la Fase 1 con el pipeline completo. (Nota de costo: la cuarta línea es un reporte de un valor ya conocido desde la Fase 0, no un cómputo nuevo — registrarla no encarece el régimen conocido. Las plantillas compactas (al final de este documento) —ruta trivial, ruta pelada— la OMITEN a propósito: esas rutas exigen régimen=conocido siempre, así que sería una línea sin información nueva.)
 
 ## Ruta pelada-con-red (cuando el router la habilita)
 
@@ -67,7 +67,7 @@ Reemplaza las Fases 1-4 (mini-spec extendida, contexto amplio, preflight complet
 3. **Refuerzo de caracterización — los anti-ejemplos del marco r9 (SOLO si el gate lo declaró)** — primer paso de la ejecución, ANTES de tocar nada del pedido propio: escribe los tests de caracterización desde el estado VIGENTE, verifica que pasan, y regístralos en la tabla Efectos como `| 1 | tests de caracterización (anti-ejemplos) escritos y verificados GREEN — baseline de red = <hash> | borrarlos | activo |` — el hash es la referencia git de ESTE punto exacto (misma técnica que el efecto #0: `stash create`/`HEAD`), INSCRITA EN LA FILA (no una referencia de runtime perdible: así sobrevive a una interrupción, en vez de tener que recapturarse al retomar). Es contra ESE hash que `tests_intactos` (punto 5) diffea, no contra el efecto #0. Si el gate no declaró refuerzo, no hay efecto #1: la fila `#0` declara explícitamente `— también baseline de red`, y es ese punto el que `tests_intactos` usa.
 4. **Ejecución directa** — el pedido + INDEX como contexto; sin mini-spec extendida, sin workflow, sin record largo.
 5. **La red — `${CLAUDE_PLUGIN_ROOT}/tools/red.sh`** al cierre (el tool vive en el PLUGIN, no en el repo destino: usá siempre `${CLAUDE_PLUGIN_ROOT}`; si esa variable no está disponible, resolvé la ruta del plugin desde la ubicación de este SKILL.md — nunca asumas `tools/red.sh` relativo al repo, y si de verdad no se encuentra, es fricción de entorno: reportala y usá la verificación manual equivalente, no cambies de ruta por eso): JSON de flags — `tests_intactos` (diff vs baseline de red sobre paths de test/conftest/fixtures), `suite_verde` (comando verificado de `commands.md`, suite COMPLETA), `scope_respetado` (archivos tocados ⊆ scope del gate), `oraculo_independiente` (los tests nuevos de la sesión se registran pero no sustituyen a la suite previa como criterio). Diagnóstico a stderr con el contrato `tests_fallidos:`/`diag:`. El JSON es la evidencia de la Verificación final. **El veredicto verde de la red es el ÚLTIMO acto sobre el árbol**: después de él no se ejecuta NADA más en el working tree — ni la suite "directa como evidencia extra" (la corrida de la red en copia desechable ES esa evidencia), ni limpiezas, ni retoques; cualquier acción posterior invalida el veredicto y obliga a re-correr la red — vale el JSON de la ÚLTIMA corrida, nunca uno anterior. (Origen: TOCTOU real medido en la validación r7 — una corrida directa post-veredicto regeneró `__pycache__` y ensució la celda que la red había dado por limpia.)
-6. **Record compacto** (plantilla en `references/plantillas-record.md`, sección "Plantilla compacta (ruta pelada-con-red — Fase 0.5)") con el veredicto del router (Fase 0.5) y el JSON de la red como evidencia.
+6. **Record compacto** (ver "Plantillas del task record", al final de este documento, sección "Plantilla compacta (ruta pelada-con-red — Fase 0.5)") con el veredicto del router (Fase 0.5) y el JSON de la red como evidencia.
 
 ### Escalación por criterios (sin contadores — regla dura 2 intacta)
 
@@ -207,14 +207,14 @@ nuevo, r9, ver Fase 1/Eje B), UN solo archivo implicado, el preflight (Fase
 3) quedó SIN preguntas (cero Huecos incluidos) Y régimen=`conocido` (Eje D,
 r10 — `inexplorado` NUNCA es ruta trivial: la cuota de rareza, el chequeo
 recíproco y el preregistro no caben en el párrafo condensado; sigue el flujo
-normal de tier S con la plantilla completa, ver `references/plantillas-record.md`): marca la
+normal de tier S con la plantilla completa, al final de este documento): marca la
 tarea como **ruta trivial** — la Fase 5 usa el gate de un párrafo SIEMPRE (al final de esa
 fase). La Fase 6 en cambio bifurca según si esa pieza generó o no efecto #1
 (ver esa fase, "Efecto #1"): sin efecto #1 (fallback, u oráculo existente),
 task record con la **plantilla compacta** de ruta trivial; con
 efecto #1 (ejemplo positivo nuevo), la **plantilla completa** de tier S —
 el efecto #1 (RED verificado + baseline de red) no entra en el presupuesto
-de líneas de la compacta (ambas plantillas en `references/plantillas-record.md`). Cualquier
+de líneas de la compacta (ambas plantillas al final de este documento). Cualquier
 otro caso (dos o más piezas, preguntas
 de preflight o Huecos, o dos o más archivos) sigue el flujo normal aunque el
 tier sea S.
@@ -303,7 +303,7 @@ presentar). **Nada muta antes del OK.**
 ## Fase 6 — Ejecución
 
 Si el task record `.graph/tasks/<YYYY-MM-DD>-<slug-corto>.md` NO EXISTE: créalo — leé
-`references/plantillas-record.md` (en el directorio de este skill) y elegí la plantilla que
+"Plantillas del task record" (al final de este documento) y elegí la plantilla que
 corresponda: la **completa** — o, si Fase 4 marcó **ruta trivial** Y la pieza única NO va a
 generar efecto #1 (fallback en prosa, u oráculo existente que ya la cubre), la **compacta de
 ruta trivial** (si en cambio la pieza única SÍ es un ejemplo positivo nuevo, con efecto #1
@@ -513,3 +513,189 @@ en fase 7: sigues en fase 6.
 7. ¿Algún comando de `commands.md` falló en uso? → corrígelo ahí (auto-reparación).
 8. ¿La tarea implementó o superó un spec/plan de `docs/superpowers/`? → actualiza la tabla del índice `docs/superpowers/README.md` (columna estado).
 9. Resume al usuario: qué se entregó, con qué evidencia (y sus amenazas a la validez), qué aprendió el sistema.
+
+---
+
+## Plantillas del task record
+
+Esta sección se usa en la Fase 6 (Ejecución), al crear el task record — si
+todavía no existe — eligiendo la plantilla que corresponda: **completa** (pipeline normal, tier S/M/L), **compacta de
+ruta trivial** (Fase 4 marcó ruta trivial y la pieza única no generó
+efecto #1), o **compacta de ruta pelada-con-red** (la Fase 0.5 habilitó
+esa ruta). La Fase 6 ya describe cuál corresponde a cada
+caso; esta sección solo trae el contenido de cada una — en `conocido` o
+`inexplorado` por igual, salvo que `inexplorado` agrega su propia sección
+`## Exploración` al record (`references/exploracion.md`, no aquí).
+
+### Plantilla del task record
+
+```markdown
+# <slug> · <YYYY-MM-DD> · tier <S|M|L>
+
+## Mini-spec aprobada
+- Intención:
+- Alcance ejecutable (scope de `tools/red.sh`):
+- Anti-criterios de constitution (C-N):
+- Router (Fase 0.5):
+  - huecos=<verde|rojo> — <evidencia>
+  - oráculo=<verde|rojo> — <"mapa, fila <área>, vigente" | "mapa sin cobertura del área → inspección fresca: <evidencia>" | "reforzado por caracterización: <qué se congeló>">
+  - consecuencia=<baja|alta> — <evidencia>
+  - régimen=<conocido|inexplorado> — <"conocido (default)" | "conocido (sugerido inexplorado: <señales> — no activado)" | "inexplorado — declarado vía <--explorar|archivo|pedido>">
+- Tier: <elegido|forzado> — porqué:
+- Aprobación: <gate interactivo | aprobado por archivo `<ruta>`>
+
+## Intención capturada
+- Ejemplos positivos (código → efecto #1): <archivo(s) + qué expresan> — RED verificado: <evidencia>, o "sin ejemplos — 100% fallback"
+- Anti-ejemplos (código de caracterización → efecto #1): <archivo(s) + qué protegen> — GREEN verificado: <evidencia>, o "ninguno — área nueva"
+- Restricciones de alcance: <ver Alcance ejecutable arriba>
+- Huecos y cómo se resolvieron: <hueco → pregunta del gate → respuesta que lo cerró, uno por línea>, o "ninguno"
+- Piezas en fallback (captura débil, si hubo): <criterio en prosa + método> — quedan también en `.graph/oraculo.md`, "Huecos conocidos"
+
+## Exploración (SOLO si régimen=inexplorado — en `conocido` esta sección NO EXISTE en el record, ni el heading; plantilla completa en `references/exploracion.md`)
+
+## Efectos
+| # | efecto | inversa | estado |
+|---|---|---|---|
+
+(estado ∈ `activo` · `revertido` · `conservado` · `irreversible`)
+
+## Diario
+| iteración | qué se hizo | diagnóstico | resultado |
+|---|---|---|---|
+
+(régimen `inexplorado`: cada fila suma la columna obligatoria — `criterio de refutación preregistrado: <cita> → ¿se cumplió? sí/no + evidencia`, r10 §5 — sin esa celda la iteración no está registrada)
+
+## Verificación final
+| criterio/ejemplo/anti-ejemplo | método | comando/procedimiento ejecutado | evidencia | ✅/❌ |
+|---|---|---|---|---|
+
+## Resultado
+- Estado: en ejecución (transitorio, solo mientras la Fase 6-7 corre) | convergió | abortado por usuario | cerrado por bloqueo (pre-aprobado) | reescopado
+- Evidencia final:
+- Amenazas a la validez: <qué se midió y qué no; evidencia de corrida única vs repetida; entorno único; qué quedó sin comparación controlada>
+- Anomalías pendientes: <ninguna | n — qué se esperaba/qué se observó/dónde, una por línea>
+- Commits: <hash-corto> <subject> (uno por línea) | ninguno
+- Aprendizajes:
+- Preguntas tardías (runtime): <ninguna | cuáles y por qué el preflight no las vio>
+```
+
+### Plantilla compacta (ruta trivial, tier S — Fase 4)
+
+Mismas secciones del contrato, colapsadas a ~10 líneas de contenido. Aplica
+SOLO si Fase 4 marcó ruta trivial Y ADEMÁS la pieza única NO generó efecto
+#1 (fue 100% fallback en prosa, o la intención ya estaba capturada por un
+oráculo existente — r9, ver Fase 6 "Efecto #1"): la tabla Efectos lleva
+SIEMPRE una sola fila, la `#0`. **Si la pieza única terminó siendo un
+ejemplo positivo NUEVO** (con efecto #1 real), la tarea sigue siendo "ruta
+trivial" a efectos del gate de un párrafo (Fase 5), pero el record usa la
+**plantilla completa de tier S** de más arriba, no esta — el efecto #1 (RED
+verificado + baseline de red) no entra en el presupuesto de líneas de este
+formato. Cualquier otro caso (dos o más piezas, preguntas de preflight o
+Huecos, o dos o más archivos) también usa la plantilla completa. El resto
+del contrato es idéntico: mismo esquema `.graph/` y mismas fases 7-8
+(evidencia real, cierre que limpia `En curso`/`.lock`, nunca "ninguna" sin
+justificar en amenazas a la validez).
+
+```markdown
+# <slug> · <YYYY-MM-DD> · tier S (ruta trivial)
+
+## Mini-spec aprobada
+- Intención/alcance: <intención en una frase — qué entra/fuera si aplica>
+- Router (Fase 0.5):
+  - huecos=<verde|rojo> — <evidencia>
+  - oráculo=<verde|rojo> — <"mapa, fila <área>, vigente" | "mapa sin cobertura del área → inspección fresca: <evidencia>" | "reforzado por caracterización: <qué se congeló>">
+  - consecuencia=<baja|alta> — <evidencia>
+- Tier: S <elegido|forzado> — <porqué en media frase>
+- Criterio (sin ejemplo nuevo — sin efecto #1): <el criterio en prosa con método, si fue fallback> | <cita del oráculo existente que ya lo cubre: archivo + comando>
+- Anti-ejemplo: ninguno — área nueva | ya caracterizado por <archivo existente>
+- Huecos: <ninguno — ruta trivial exige cero, o no habría sido ruta trivial>
+- Anti-criterios (C-N) · Aprobación: <anti-criterios en una línea citando C-N> · <gate interactivo | aprobado por archivo `<ruta>`>
+
+## Efectos
+| # | efecto | inversa | estado |
+|---|---|---|---|
+| 0 | base git (`stash create`/`HEAD`) — también baseline de red (sin efecto #1) | restaurar paths + borrar no-rastreados (excluye `.graph/`) | activo |
+
+## Diario
+| iteración | qué se hizo | diagnóstico | resultado |
+|---|---|---|---|
+| 1 | <qué se hizo> | <diagnóstico, o "sin fallos"> | <resultado> |
+
+## Verificación final
+| criterio/ejemplo/anti-ejemplo | método | comando/procedimiento ejecutado | evidencia | ✅/❌ |
+|---|---|---|---|---|
+| <criterio + anti-criterios> | <método del criterio, incluye `tools/red.sh` para integridad> | <comando(s) ejecutado(s)> | <output real citado — criterio y JSON de `red.sh`> | ✅ |
+
+## Resultado
+- Estado: en ejecución (transitorio) | convergió | abortado por usuario | cerrado por bloqueo (pre-aprobado) | reescopado
+- Evidencia final (con amenazas a la validez, breve): <resumen>
+- Anomalías pendientes: ninguna | <n — qué se esperaba/qué se observó/dónde>
+- Commits: <hash-corto> <subject> (uno por línea) | ninguno
+- Aprendizajes: <resumen>
+- Preguntas tardías (runtime): ninguna | <cuáles y por qué el preflight no las vio>
+```
+
+### Plantilla compacta (ruta pelada-con-red — Fase 0.5)
+
+Mismas secciones del contrato, colapsadas a ≤22 líneas de contenido (bullets de
+Mini-spec + filas de datos de Efectos/Diario/Verificación final + bullets de
+Resultado; el diario se mantiene en 1-4 filas). Aplica SOLO si la Fase 0.5 habilitó la ruta
+pelada-con-red (los tres ejes en verde/baja); cualquier otro caso usa la plantilla completa
+o la compacta de ruta trivial de arriba. El resto del contrato es idéntico: mismo esquema
+`.graph/`, mismas fases 7-8 (evidencia real, cierre que limpia `En curso`/`.lock`, nunca
+"ninguna" sin justificar en amenazas a la validez). La Verificación final es el JSON de
+`tools/red.sh` más UNA sola fila de anti-criterios (TODAS las C-N juntas en esa fila —
+NUNCA una fila por C-N: eso es de la plantilla completa), volcado a la misma tabla de 5
+columnas que las
+demás plantillas. Si el gate declaró refuerzo de caracterización, la tabla Efectos suma la
+fila `| 1 | tests de caracterización (anti-ejemplos) escritos y verificados GREEN — baseline
+de red = <hash> | borrarlos | activo |` (pasa a `conservado` al cerrar, converja o escale —
+ver "Escalación por criterios" en `references/escalacion-y-presupuesto.md`); si NO hubo refuerzo, la fila `#0` declara explícitamente
+`— también baseline de red` (ver "Ruta pelada-con-red", punto 3).
+
+```markdown
+# <slug> · <YYYY-MM-DD> · ruta pelada-con-red
+
+## Mini-spec aprobada
+- Pedido: <el pedido tal cual>
+- Router (Fase 0.5):
+  - huecos=verde — <evidencia>
+  - oráculo=verde — <"mapa, fila <área>, vigente" | "mapa sin cobertura del área → inspección fresca: <evidencia>" | "reforzado por caracterización: <qué se congeló>">
+  - consecuencia=baja — <evidencia>
+- Gate: `ruta pelada — oráculo: <comando+alcance>, scope: <archivos/área>, consecuencia baja` · anti-criterios (C-N): <cita las C-N aplicables> · escalación: si la red detecta suciedad → reinicio limpio, mismo pedido/criterios/scope (esta aprobación cubre ambas rutas) · Aprobación: <gate interactivo | aprobado por archivo `<ruta>`>
+
+## Efectos
+| # | efecto | inversa | estado |
+|---|---|---|---|
+| 0 | base git (`stash create`/`HEAD`) — también baseline de red si no hubo efecto #1 | restaurar paths + borrar no-rastreados (excluye `.graph/`) | activo |
+
+## Diario
+| iteración | qué se hizo | diagnóstico | resultado |
+|---|---|---|---|
+| 1 | <qué se hizo> | <diagnóstico, o "sin fallos"> | <resultado> |
+
+## Verificación final
+| criterio/anti-criterio | método | comando/procedimiento ejecutado | evidencia | ✅/❌ |
+|---|---|---|---|---|
+| tests_intactos | `tools/red.sh` — diff vs baseline de red sobre paths de test/conftest/fixtures | `tools/red.sh` | <valor JSON `tests_intactos`> | ✅ |
+| suite_verde | `tools/red.sh` — comando verificado de `commands.md`, suite completa | `tools/red.sh` | <valor JSON `suite_verde`> | ✅ |
+| scope_respetado | `tools/red.sh` — archivos tocados ⊆ scope del gate | `tools/red.sh` | <valor JSON `scope_respetado`> | ✅ |
+| oraculo_independiente | `tools/red.sh` — tests nuevos de la sesión registrados, no sustituyen la suite previa | `tools/red.sh` | <valor JSON `oraculo_independiente`> | ✅ |
+| anti-criterios (C-N) | revisión del diff/scope contra cada C-N citada arriba | inspección del diff final | <intactos — o detalle de la excepción> | ✅ |
+
+## Resultado
+- Estado: en ejecución (transitorio) | convergió | escalado a pipeline completo (reinicio limpio) | abortado por usuario | cerrado por bloqueo (pre-aprobado)
+- Escalación: ninguna | sucio (<tests tocados|suite roja|scope violado>) → reinicio limpio, ver sección "## Escalación a pipeline completo" más abajo en este mismo record | fricción menor (no escaló): <qué>
+- Evidencia final (con amenazas a la validez, breve): <resumen>
+- Anomalías pendientes: ninguna | <n — qué se esperaba/qué se observó/dónde> (obligatorio: regla dura 8 y Fase 8 lo exigen en TODO record, también en el compacto)
+
+**Esta plantilla es CERRADA.** Los bullets de Resultado de arriba son exactamente los
+que van: ni uno más. En particular las amenazas a la validez van DENTRO de `Evidencia
+final`, nunca como bullet aparte, y la tabla de Verificación final lleva 6 filas (los 4
+flags de `red.sh` + el criterio del pedido + UNA de anti-criterios). No copies secciones
+ni bullets de la plantilla completa de arriba: si el caso los necesita, entonces no era
+ruta pelada y corresponde la plantilla completa.
+- Commits: <hash-corto> <subject> (uno por línea) | ninguno
+- Aprendizajes: <resumen>
+- Preguntas tardías (runtime): ninguna | <cuáles y por qué el preflight no las vio>
+```
