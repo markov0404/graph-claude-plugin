@@ -9,7 +9,7 @@ Argumentos: "$ARGUMENTS" (vacío = setup normal; "refresh" = re-escaneo directo)
 Tu trabajo es generar o refrescar `.graph/`, la base de conocimiento de ESTE
 repo. Recorre las fases en orden. Todo lo que escribas va en español.
 
-Esquema de `.graph/` vigente: 4
+Esquema de `.graph/` vigente: 5
 
 ## Fase 1 — Detección previa
 
@@ -99,7 +99,7 @@ Crea los archivos con EXACTAMENTE estos formatos (rellenando con lo escaneado):
 
 ```markdown
 # GRAPH · <nombre del proyecto>
-> Actualizado: <YYYY-MM-DD> · Estado: completo · Esquema: 4
+> Actualizado: <YYYY-MM-DD> · Estado: completo · Esquema: 5
 
 **Qué es:** <1-2 frases>
 **Stack:** <lenguajes y frameworks clave>
@@ -269,6 +269,66 @@ tabla crece más de ~1 pantalla, movés las áreas ÍNTEGRAS a un nodo
 enlazado nuevo (nunca a `constitution.md`/`decisions.md`/`tasks/`, son
 nodos protegidos); la sección "Huecos conocidos" SIEMPRE queda en
 `oraculo.md`, el archivo raíz — nunca se trunca ni se resume con pérdida.
+
+## Fase 4.6 — Siembra del grafo de exploración
+
+Si `.graph/exploracion.md` no existe: créalo con el esqueleto vacío exacto
+que exige el CONTRATO de `${CLAUDE_PLUGIN_ROOT}/tools/exploracion.sh` (ronda
+10) — 0 nodos, 0 aristas:
+
+```markdown
+# Grafo de exploración · <proyecto>
+> Esquema-exploracion: 1 · Sembrado: /graph:init <fecha> · Última tarea: ninguna
+
+## Resumen
+_(sin nodos todavía)_
+
+## Nodos
+<!-- exploracion:nodos:start -->
+<!-- exploracion:nodos:end -->
+
+## Aristas
+<!-- exploracion:aristas:start -->
+<!-- exploracion:aristas:end -->
+
+## Huecos
+_(ninguno todavía)_
+```
+
+A diferencia de la Fase 4.5 (`oraculo-map.sh scan`), acá no hay ningún
+escaneo que correr ni contenido preexistente del repo que volcar: init
+NUNCA escanea el código en busca de hipótesis, intentos o anomalías — eso
+no es escaneable. El grafo de exploración describe una búsqueda que alguien
+hizo, no una estructura reconstruible del repo (spec ronda 10 §4: es lo que
+lo distingue de los otros nodos de `.graph/`, que sí son reconstruibles).
+Los nodos reales los agrega `/graph:do` con `tools/exploracion.sh agregar`
+a medida que corre la ronda 10; el único trabajo de esta fase es la SIEMBRA
+del esqueleto vacío, una sola vez.
+
+Esta fase corre SIEMPRE en refresh, sin importar si el usuario eligió
+"todo" o "solo lo desactualizado" en la Fase 1 (mismo criterio de disparo
+que la Fase 4.5) — pero lo que dispara es solo la comprobación de
+existencia de abajo, nunca una regeneración de contenido.
+
+**Arranque** (`.graph/` recién creado, sin base previa): créalo siempre,
+con el esqueleto de arriba.
+
+**Refresh — regla "créalo solo esa primera vez", jamás pisar nodos
+existentes**: si `.graph/exploracion.md` YA EXISTE, esta fase NO LO TOCA —
+ni un byte, ni siquiera la línea de estado (`Sembrado:`/`Última tarea:` los
+mantiene `/graph:do`, no init) — así que un archivo con nodos reales nunca
+puede perderlos acá, por construcción: si existe, esta fase no escribe.
+Si NO existe todavía (base de un esquema anterior a este, 4 o menor): es la
+migración de esquema 4→5 — creálo esta primera vez con el mismo esqueleto
+de arranque de arriba, igual que la migración 3→4 de `oraculo.md` en la
+Fase 4.5.
+
+Si `${CLAUDE_PLUGIN_ROOT}/tools/exploracion.sh` existe, validá el esqueleto
+recién sembrado con `tools/exploracion.sh validar <archivo>` antes de
+seguir (debe dar rc=0 — es exactamente el esqueleto que exige su propio
+contrato); si el tool no existe o falla, sembrá igual el archivo a mano con
+el formato de arriba y seguí — degradación, nunca bloqueo (mismo criterio
+que `symbol-map.sh`/`oraculo-map.sh` en las fases anteriores).
 
 ## Fase 5 — Corrección temprana
 
