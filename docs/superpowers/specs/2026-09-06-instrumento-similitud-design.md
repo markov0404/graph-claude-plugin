@@ -17,6 +17,22 @@ De `~/qcd-implementation`, dos piezas metodológicas (no código: el repo declar
 1. **`scripts/geometry_phase_b4_inter_intra_distance.py`** — razón inter/intra entre centroides. Se traslada: distancia *intra-brazo* (¿las tres capturas de X son diversas o tres variantes de lo mismo?) vs *inter-brazo* (¿X propone algo distinto de X−g?).
 2. **`scripts/v4_random_vector_baseline.py`** — **la pieza decisiva**. Su pregunta textual: *"si barajamos las etiquetas, ¿seguimos obteniendo el mismo resultado? Si sí: es un artefacto geométrico, no estructura categórica."* Ese control habría matado el criterio falsador de r10 en un minuto, sin necesidad del álgebra de cardinalidad.
 
+## Criterio de etiquetado (definición operativa — sin esto el ancla es ruido)
+
+La definición sale de **para qué** se usa la medida (solapamiento entre brazos, y filtro `repite`), y las dos convergen:
+
+> **"Misma"** = si ya tenés una, la otra **no agrega nada**: llevan al mismo trabajo, y **la evidencia que refutaría a una refutaría a la otra**.
+> **"Distinta"** = elegir una u otra **cambia lo que hacés**, o pueden caerse por evidencia distinta.
+
+No es "se parecen" ni "hablan de lo mismo". El test es: **¿son intercambiables en la práctica?**
+
+Aplicar el criterio ya corrigió tres etiquetas intuitivas del primer armado, y las tres eran de la misma familia — frases que hablan del mismo tema pero no son sustituibles:
+- **regla vs causa** (`p40`: "una ronda, un componente" vs "los defectos aparecen al componer") — la primera prescribe, la segunda observa.
+- **principio vs instancia** (`p39`: "detectar no puede salir peor que no detectar" vs el caso concreto de la anomalía que cierra la tarea) — arreglar el caso no agota el principio.
+- **fin vs medio** (`p16`: "elegir cuánta ceremonia según la tarea" vs "el router decide por ejes objetivos") — otra implementación satisfaría el fin y refutaría el medio.
+
+Que esa familia sea la que más se equivoca es información sobre el instrumento: cualquier medida —léxica, embeddings o juez— va a tender a marcarlas "misma" porque comparten tema. Es el caso duro real, y por eso está sobre-representado en el set.
+
 ## Diseño
 
 ### `bench/similitud/` — tres medidas, una interfaz
