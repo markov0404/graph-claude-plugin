@@ -11,6 +11,24 @@
 # silencio), determinismo bajo dos LC_ALL distintos, pytest.raises
 # (with-item) → fuerte, y stdin con ~50 archivos (la vía nueva que
 # reemplaza argv para no pisar MAX_ARG_STRLEN).
+# Ronda 9: modo nuevo `fuerza <archivo>` (evalúa UN ejemplo suelto, aún
+# fuera de cualquier árbol) — asserts reales → fuerte con motivo 'ok: N
+# asserts reales en M tests', 'assert True' trivial → débil con motivo,
+# sin funciones de test → débil ('sin tests'), con test pero sin ningún
+# assert → débil ('sin asserts reales'), idéntico por archivo o por
+# stdin (`fuerza - <nombre>`), archivo inexistente y python3 roto → rc=1
+# fail-closed, determinismo (archivo y stdin), consistencia con lo que
+# `scan` reportaría para el mismo contenido/nombre en disco, y uso
+# inválido.
+# Ronda 9 (fix r9, contrato §4): el dispatch de lenguaje de `fuerza` es
+# EXACTAMENTE el de `scan` (extensión del nombre, nunca un `ast.parse()`
+# de prueba) — un nombre sin extensión .py reconocida SIEMPRE va por
+# "otros", aunque el contenido resulte ser Python válido por azar; y un
+# .py que no parsea SIEMPRE es 'débil' con motivo 'no parsea
+# (SyntaxError): <detalle>', nunca 'fuerte' (antes era fail-open por
+# stdin/sin-sufijo). Por eso, por stdin, el nombre (con extensión) ahora
+# es OBLIGATORIO como segundo argumento: `fuerza - <nombre>`, sin él →
+# rc=1 con diag específico.
 # Fixtures 100% fuera del árbol del repo (mktemp), como exige
 # conventions.md para tests headless.
 set -euo pipefail
@@ -512,4 +530,255 @@ OUT_T="$(mktemp -p "$SCRATCH_ROOT")"
 grep -q "^tests/test_real.py" "$OUT_T" || { echo "FAIL (t): la fila no es el test real: $(cat "$OUT_T")"; exit 1; }
 ! grep -qE "pycache|[.]pyc|pytest_cache" "$OUT_T" || { echo "FAIL (t): artefactos no podados: $(cat "$OUT_T")"; exit 1; }
 
-echo "OK: test-oraculo-map.sh — todos los casos pasaron (incl. poda de artefactos)"
+# =============================================================================
+# Ronda 9 (r9): modo nuevo `fuerza <archivo>` — evalúa UN ejemplo suelto
+# (redactado por el agente, aún fuera de cualquier árbol) reusando LA MISMA
+# función de análisis que `scan`. Salida: n_tests<TAB>fuerza<TAB>motivo.
+# =============================================================================
+
+echo "— caso (u): fuerza <archivo> con asserts reales → fuerte + motivo 'ok: N asserts reales en M tests'"
+REPO_U="$(mktemp -d -p "$SCRATCH_ROOT")"
+cat > "$REPO_U/ejemplo_test.py" <<'EOF'
+def suma(a, b):
+    return a + b
+
+
+def test_suma_ok():
+    assert suma(2, 3) == 5
+
+
+def test_suma_negativos():
+    assert suma(-1, -1) == -2
+EOF
+OUT_U="$("$TOOL" fuerza "$REPO_U/ejemplo_test.py")"
+[ "$(printf '%s' "$OUT_U" | cut -f1)" = "2" ] \
+  || { echo "FAIL (u): n_tests esperado 2, fila: $OUT_U"; exit 1; }
+[ "$(printf '%s' "$OUT_U" | cut -f2)" = "fuerte" ] \
+  || { echo "FAIL (u): fuerza esperada 'fuerte', fila: $OUT_U"; exit 1; }
+printf '%s' "$OUT_U" | cut -f3 | grep -qxF "ok: 2 asserts reales en 2 tests" \
+  || { echo "FAIL (u): motivo esperado 'ok: 2 asserts reales en 2 tests', fila: $OUT_U"; exit 1; }
+
+echo "— caso (v): fuerza <archivo> con 'assert True' (trivial) → débil + motivo accionable"
+REPO_V="$(mktemp -d -p "$SCRATCH_ROOT")"
+cat > "$REPO_V/ejemplo_trivial.py" <<'EOF'
+def test_no_verifica_nada():
+    assert True
+EOF
+OUT_V="$("$TOOL" fuerza "$REPO_V/ejemplo_trivial.py")"
+[ "$(printf '%s' "$OUT_V" | cut -f1)" = "1" ] \
+  || { echo "FAIL (v): n_tests esperado 1, fila: $OUT_V"; exit 1; }
+[ "$(printf '%s' "$OUT_V" | cut -f2)" = "débil" ] \
+  || { echo "FAIL (v): fuerza esperada 'débil', fila: $OUT_V"; exit 1; }
+printf '%s' "$OUT_V" | cut -f3 | grep -qiF "assert true" \
+  || { echo "FAIL (v): motivo debería mencionar la aserción trivial, fila: $OUT_V"; exit 1; }
+
+echo "— caso (w): fuerza <archivo> sin ninguna función de test → débil + motivo 'sin tests'"
+REPO_W="$(mktemp -d -p "$SCRATCH_ROOT")"
+cat > "$REPO_W/helper.py" <<'EOF'
+def helper():
+    return 1
+EOF
+OUT_W="$("$TOOL" fuerza "$REPO_W/helper.py")"
+[ "$(printf '%s' "$OUT_W" | cut -f1)" = "0" ] \
+  || { echo "FAIL (w): n_tests esperado 0, fila: $OUT_W"; exit 1; }
+[ "$(printf '%s' "$OUT_W" | cut -f2)" = "débil" ] \
+  || { echo "FAIL (w): fuerza esperada 'débil', fila: $OUT_W"; exit 1; }
+printf '%s' "$OUT_W" | cut -f3 | grep -qiF "sin tests" \
+  || { echo "FAIL (w): motivo debería mencionar 'sin tests', fila: $OUT_W"; exit 1; }
+
+echo "— caso (w2): fuerza <archivo> con test pero SIN ningún assert → débil + motivo 'sin asserts reales'"
+REPO_W2="$(mktemp -d -p "$SCRATCH_ROOT")"
+cat > "$REPO_W2/ejemplo_sin_assert.py" <<'EOF'
+def test_no_hace_nada():
+    pass
+EOF
+OUT_W2="$("$TOOL" fuerza "$REPO_W2/ejemplo_sin_assert.py")"
+[ "$(printf '%s' "$OUT_W2" | cut -f2)" = "débil" ] \
+  || { echo "FAIL (w2): fuerza esperada 'débil', fila: $OUT_W2"; exit 1; }
+printf '%s' "$OUT_W2" | cut -f3 | grep -qxF "sin asserts reales" \
+  || { echo "FAIL (w2): motivo esperado 'sin asserts reales', fila: $OUT_W2"; exit 1; }
+
+echo "— caso (x): fuerza - <nombre> (stdin) con contenido python → mismo TSV que vía archivo equivalente"
+OUT_X="$("$TOOL" fuerza - ejemplo_test.py < "$REPO_U/ejemplo_test.py")"
+[ "$OUT_X" = "$OUT_U" ] \
+  || { echo "FAIL (x): stdin debería dar el mismo TSV que el archivo. archivo: $OUT_U --- stdin: $OUT_X"; exit 1; }
+
+echo "— caso (x2): fuerza - <nombre> (stdin) con contenido no-python (JS) → dispatch por nombre real, rama 'otros'"
+REPO_X2="$(mktemp -d -p "$SCRATCH_ROOT")"
+cat > "$REPO_X2/x.test.js" <<'EOF'
+const assert = require('assert');
+
+test('doubles a number', () => {
+  assert.strictEqual(double(2), 4);
+});
+EOF
+OUT_X2="$("$TOOL" fuerza - x.test.js < "$REPO_X2/x.test.js")"
+[ "$(printf '%s' "$OUT_X2" | cut -f1)" = "1" ] \
+  || { echo "FAIL (x2): n_tests esperado 1, fila: $OUT_X2"; exit 1; }
+[ "$(printf '%s' "$OUT_X2" | cut -f2)" = "fuerte" ] \
+  || { echo "FAIL (x2): fuerza esperada 'fuerte', fila: $OUT_X2"; exit 1; }
+
+echo "— caso (y): fuerza <archivo> inexistente → rc=1 + diag"
+ERR_Y="$(mktemp -p "$SCRATCH_ROOT")"; OUT_Y="$(mktemp -p "$SCRATCH_ROOT")"
+set +e
+"$TOOL" fuerza "$SCRATCH_ROOT/no-existe-$$.py" >"$OUT_Y" 2>"$ERR_Y"
+RC_Y=$?
+set -e
+[ "$RC_Y" -eq 1 ] || { echo "FAIL (y): esperaba rc=1, fue $RC_Y"; exit 1; }
+[ -z "$(cat "$OUT_Y")" ] \
+  || { echo "FAIL (y): stdout debería quedar vacío ante archivo inexistente. stdout: $(cat "$OUT_Y")"; exit 1; }
+grep -qF "diag:" "$ERR_Y" \
+  || { echo "FAIL (y): stderr sin diag. stderr: $(cat "$ERR_Y")"; exit 1; }
+
+echo "— caso (z): determinismo del modo fuerza (archivo, 2 corridas byte-idénticas)"
+OUT_Z1="$("$TOOL" fuerza "$REPO_U/ejemplo_test.py")"
+OUT_Z2="$("$TOOL" fuerza "$REPO_U/ejemplo_test.py")"
+[ "$OUT_Z1" = "$OUT_Z2" ] \
+  || { echo "FAIL (z): dos corridas de fuerza difieren. out1: $OUT_Z1 --- out2: $OUT_Z2"; exit 1; }
+
+echo "— caso (z2): determinismo del modo fuerza (stdin, 2 corridas byte-idénticas)"
+OUT_Z2A="$("$TOOL" fuerza - ejemplo_test.py < "$REPO_U/ejemplo_test.py")"
+OUT_Z2B="$("$TOOL" fuerza - ejemplo_test.py < "$REPO_U/ejemplo_test.py")"
+[ "$OUT_Z2A" = "$OUT_Z2B" ] \
+  || { echo "FAIL (z2): dos corridas de fuerza por stdin difieren. out1: $OUT_Z2A --- out2: $OUT_Z2B"; exit 1; }
+
+echo "— caso (aa): fuerza + python3 roto → fail-closed (rc≠0, stdout vacío, diag)"
+OUT_AA="$(mktemp -p "$SCRATCH_ROOT")"; ERR_AA="$(mktemp -p "$SCRATCH_ROOT")"
+set +e
+PATH="$FAKEBIN:$PATH" "$TOOL" fuerza "$REPO_U/ejemplo_test.py" >"$OUT_AA" 2>"$ERR_AA"
+RC_AA=$?
+set -e
+[ "$RC_AA" -ne 0 ] || { echo "FAIL (aa): esperaba exit != 0 con python3 roto, fue $RC_AA"; exit 1; }
+[ -z "$(cat "$OUT_AA")" ] \
+  || { echo "FAIL (aa): stdout debería quedar vacío ante error interno. stdout: $(cat "$OUT_AA")"; exit 1; }
+grep -qF "diag:" "$ERR_AA" \
+  || { echo "FAIL (aa): stderr sin diag. stderr: $(cat "$ERR_AA")"; exit 1; }
+
+echo "— caso (bb): invariante scan≡fuerza — mismo contenido + mismo nombre coinciden SIEMPRE en n_tests y fuerza"
+# r9 fix (contrato §4, hallazgo 6): antes de este fix, `fuerza` tenía un
+# dispatch de lenguaje PARALELO al de `scan` (probaba `ast.parse()` sobre
+# cualquier nombre sin ".py"), así que el invariante scan≡fuerza NO
+# quedaba realmente probado con fixtures triviales — pasaba "por
+# elección de fixtures". Se reescribe con los 3 fixtures que HOY (antes
+# del fix) divergían o eran el foco del ruling: un .rb con sintaxis
+# Python válida (repro del hallazgo ALTA #1), un .ts (exigido igual como
+# cobertura del invariante, aunque no divergía), y un .py roto entregado
+# por stdin (repro del hallazgo ALTA #2, fail-open).
+REPO_BB="$(mktemp -d -p "$SCRATCH_ROOT")"
+mkdir -p "$REPO_BB/tests" "$REPO_BB/test"
+
+# (bb-1) .rb con sintaxis Python VÁLIDA. Antes del fix, `fuerza` lo
+# adivinaba como Python (ast.parse no falla) y encontraba "test_something"
+# con un assert real → "fuerte"; `scan` (por extensión) siempre lo trató
+# como "otros" → n_tests=0 → "débil". Divergencia real, hoy corregida.
+cat > "$REPO_BB/tests/ejemplo.rb" <<'EOF'
+def test_something():
+    assert 1 == 1
+EOF
+
+# (bb-2) .ts — no divergía antes (la arrow function ya rompía el
+# ast.parse de prueba), pero se incluye igual: fixture de cobertura del
+# invariante exigida explícitamente por el ruling.
+cat > "$REPO_BB/test/x.test.ts" <<'EOF'
+function double(n) {
+  return n * 2;
+}
+
+test('doubles a number', () => {
+  expect(double(2)).toBe(4);
+});
+EOF
+
+# (bb-3) .py roto (SyntaxError), entregado por STDIN. Antes del fix, por
+# stdin sin extensión .py "reconocida" (el hint viejo era siempre "-"),
+# esto fallaba el ast.parse() de prueba y caía FAIL-OPEN a la rama de
+# conteo por regex — podía reportar "fuerte" para código que ni siquiera
+# corre. Hoy el nombre da la extensión (".py") sin adivinar, así que va
+# SIEMPRE por la rama AST, que degrada a "débil" con el detalle de la
+# SyntaxError.
+cat > "$REPO_BB/tests/broken_test.py" <<'EOF'
+def test_broken(
+    assert 1 == 1
+EOF
+
+OUT_BB_SCAN="$("$TOOL" scan "$REPO_BB")"
+ROW_BB_RB="$(tsv_row "$OUT_BB_SCAN" "tests/ejemplo.rb")" \
+  || { echo "FAIL (bb): no apareció tests/ejemplo.rb en scan: $OUT_BB_SCAN"; exit 1; }
+ROW_BB_TS="$(tsv_row "$OUT_BB_SCAN" "test/x.test.ts")" \
+  || { echo "FAIL (bb): no apareció test/x.test.ts en scan: $OUT_BB_SCAN"; exit 1; }
+ROW_BB_PY="$(tsv_row "$OUT_BB_SCAN" "tests/broken_test.py")" \
+  || { echo "FAIL (bb): no apareció tests/broken_test.py en scan: $OUT_BB_SCAN"; exit 1; }
+
+OUT_BB_FUERZA_RB="$("$TOOL" fuerza "$REPO_BB/tests/ejemplo.rb")"
+OUT_BB_FUERZA_TS="$("$TOOL" fuerza "$REPO_BB/test/x.test.ts")"
+OUT_BB_FUERZA_PY="$("$TOOL" fuerza - broken_test.py < "$REPO_BB/tests/broken_test.py")"
+
+# --- (bb-1) .rb: scan≡fuerza, y ambos deben dar 0/débil (no se adivina) ---
+[ "$(printf '%s' "$ROW_BB_RB" | cut -f2,3)" = "$(printf '%s' "$OUT_BB_FUERZA_RB" | cut -f1,2)" ] \
+  || { echo "FAIL (bb): .rb — scan y fuerza divergen. scan: $ROW_BB_RB --- fuerza: $OUT_BB_FUERZA_RB"; exit 1; }
+[ "$(printf '%s' "$ROW_BB_RB" | cut -f2,3)" = "$(printf '0\tdébil')" ] \
+  || { echo "FAIL (bb): .rb — se esperaba 0/débil (no se adivina Python por parseabilidad). scan: $ROW_BB_RB"; exit 1; }
+
+# --- (bb-2) .ts: scan≡fuerza, y ambos deben dar 1/fuerte ---
+[ "$(printf '%s' "$ROW_BB_TS" | cut -f2,3)" = "$(printf '%s' "$OUT_BB_FUERZA_TS" | cut -f1,2)" ] \
+  || { echo "FAIL (bb): .ts — scan y fuerza divergen. scan: $ROW_BB_TS --- fuerza: $OUT_BB_FUERZA_TS"; exit 1; }
+[ "$(printf '%s' "$ROW_BB_TS" | cut -f2,3)" = "$(printf '1\tfuerte')" ] \
+  || { echo "FAIL (bb): .ts — se esperaba 1/fuerte. scan: $ROW_BB_TS"; exit 1; }
+
+# --- (bb-3) .py roto por stdin: scan≡fuerza, ambos 0/débil, NUNCA fuerte ---
+[ "$(printf '%s' "$ROW_BB_PY" | cut -f2,3)" = "$(printf '%s' "$OUT_BB_FUERZA_PY" | cut -f1,2)" ] \
+  || { echo "FAIL (bb): .py roto — scan y fuerza divergen. scan: $ROW_BB_PY --- fuerza: $OUT_BB_FUERZA_PY"; exit 1; }
+[ "$(printf '%s' "$ROW_BB_PY" | cut -f2,3)" = "$(printf '0\tdébil')" ] \
+  || { echo "FAIL (bb): .py roto — se esperaba 0/débil (SyntaxError degrada a débil, nunca fuerte). scan: $ROW_BB_PY"; exit 1; }
+printf '%s' "$OUT_BB_FUERZA_PY" | cut -f3 | grep -qiF "syntaxerror" \
+  || { echo "FAIL (bb): .py roto — el motivo de fuerza debería mencionar SyntaxError. fuerza: $OUT_BB_FUERZA_PY"; exit 1; }
+! printf '%s' "$OUT_BB_FUERZA_PY" | cut -f3 | grep -qF "$(printf '\t')" \
+  || { echo "FAIL (bb): .py roto — el motivo no debería contener TAB (corrompería el TSV). fuerza: $OUT_BB_FUERZA_PY"; exit 1; }
+
+echo "— caso (cc): fuerza sin argumento → rc=1 + diag"
+ERR_CC="$(mktemp -p "$SCRATCH_ROOT")"
+set +e
+"$TOOL" fuerza >/dev/null 2>"$ERR_CC"
+RC_CC=$?
+set -e
+[ "$RC_CC" -ne 0 ] || { echo "FAIL (cc): esperaba exit != 0 sin argumento, fue $RC_CC"; exit 1; }
+grep -qF "diag:" "$ERR_CC" \
+  || { echo "FAIL (cc): stderr sin diag. stderr: $(cat "$ERR_CC")"; exit 1; }
+
+echo "— caso (dd): fuerza sobre archivo SIN extensión .py (aunque su contenido sea Python válido) → SIEMPRE rama 'otros', prohibido adivinar"
+REPO_DD="$(mktemp -d -p "$SCRATCH_ROOT")"
+cat > "$REPO_DD/ejemplo_sin_sufijo" <<'EOF'
+def test_algo():
+    assert 1 + 1 == 2
+EOF
+OUT_DD="$("$TOOL" fuerza "$REPO_DD/ejemplo_sin_sufijo")"
+[ "$(printf '%s' "$OUT_DD" | cut -f1)" = "0" ] \
+  || { echo "FAIL (dd): n_tests esperado 0 (rama 'otros': 'test_algo(' no matchea 'it(/test('), fila: $OUT_DD"; exit 1; }
+[ "$(printf '%s' "$OUT_DD" | cut -f2)" = "débil" ] \
+  || { echo "FAIL (dd): fuerza esperada 'débil' (NUNCA se adivina Python por parseabilidad), fila: $OUT_DD"; exit 1; }
+printf '%s' "$OUT_DD" | cut -f3 | grep -qiF "sin tests" \
+  || { echo "FAIL (dd): motivo debería ser el de 'otros' sin tests, fila: $OUT_DD"; exit 1; }
+
+echo "— caso (ee): fuerza - sin nombre (stdin sin extensión) → rc=1 + diag específico"
+ERR_EE="$(mktemp -p "$SCRATCH_ROOT")"; OUT_EE="$(mktemp -p "$SCRATCH_ROOT")"
+set +e
+printf 'def test_x():\n    assert 1 == 1\n' | "$TOOL" fuerza - >"$OUT_EE" 2>"$ERR_EE"
+RC_EE=$?
+set -e
+[ "$RC_EE" -eq 1 ] || { echo "FAIL (ee): esperaba rc=1, fue $RC_EE. stderr: $(cat "$ERR_EE")"; exit 1; }
+[ -z "$(cat "$OUT_EE")" ] \
+  || { echo "FAIL (ee): stdout debería quedar vacío. stdout: $(cat "$OUT_EE")"; exit 1; }
+grep -qF "diag: fuerza - requiere un nombre de archivo con extensión (ej: fuerza - ejemplo.py)" "$ERR_EE" \
+  || { echo "FAIL (ee): diag debería pedir el nombre con extensión, exacto. stderr: $(cat "$ERR_EE")"; exit 1; }
+
+echo "— caso (ff): fuerza <archivo> con un segundo argumento (fuera de la forma '-') → rc=1 + diag"
+ERR_FF="$(mktemp -p "$SCRATCH_ROOT")"
+set +e
+"$TOOL" fuerza "$REPO_U/ejemplo_test.py" "extra" >/dev/null 2>"$ERR_FF"
+RC_FF=$?
+set -e
+[ "$RC_FF" -ne 0 ] || { echo "FAIL (ff): esperaba exit != 0 con argumento extra, fue $RC_FF"; exit 1; }
+grep -qF "diag:" "$ERR_FF" \
+  || { echo "FAIL (ff): stderr sin diag. stderr: $(cat "$ERR_FF")"; exit 1; }
+
+echo "OK: test-oraculo-map.sh — todos los casos pasaron (incl. poda de artefactos y modo fuerza r9 + fix r9)"
