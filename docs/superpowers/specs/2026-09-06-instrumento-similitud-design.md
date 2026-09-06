@@ -50,7 +50,7 @@ Todas exponen `medir(a: str, b: str) -> float` en [0,1] y se corren sobre el mis
 Pares `{a, b, etiqueta: misma|distinta, origen}`. Tres fuentes:
 - **Reales**: extraídos de los 71 records existentes en `bench/out*/`, `bench/real/`, `bench/seq/`.
 - **Sintéticos por reformulación**: mismo contenido con otras palabras → `misma` por construcción (es el caso que la medida léxica debería fallar, y por eso tiene que estar).
-- **Ancla humana**: ~20 pares etiquetados por el usuario. Es la única verdad de referencia; todo lo demás se mide contra esto.
+- **Ancla humana**: el usuario revisó el set completo (2026-09-06). Confirmó explícitamente `p39` y `p40` como `distinta` —coincidiendo con la re-auditoría bajo el criterio operativo— y delegó el resto al criterio ya definido. Las 44 etiquetas quedan como ancla; el campo `ancla` distingue `humana-confirmada` de `humana-delegada`. **Amenaza declarada**: la delegación hace que el ancla y las medidas compartan autor en 42 de 44 pares, así que el acuerdo alto de una medida con el ancla puede reflejar estilo común y no acierto — se reporta junto al resultado.
 
 ### `bench/similitud/evaluar.py` — el reporte
 
