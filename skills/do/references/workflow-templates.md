@@ -1,5 +1,21 @@
 # Plantillas de Workflow para tier L
 
+## Cuándo se activa (Tier L)
+
+Esto se autora cuando la Fase 4 de `SKILL.md` clasifica la tarea como tier
+L, con la plantilla que corresponda de las de abajo (implementación
+multi-frente / investigación / auditoría) — leerlas y usarlas es en sí el
+opt-in del usuario para el Workflow tool (`SKILL.md`, "Tier L — grafo").
+En la verificación adversarial, sigue la cascada de refutación de este
+archivo: severidad alta, o hallazgos que tocan reglas duras/gate/contrato
+`.graph/`, van a las 3 lentes en paralelo con voto por mayoría (tabla
+lente→modelo de abajo); el resto pasa primero por un refutador barato en
+lente correctitud y, solo si sostiene el hallazgo, a un refutador en lente
+riesgo (modelo más capaz). Reglas: worktrees si los nodos mutan los mismos
+archivos; verificación adversarial de cada entregable; síntesis final; el
+loop convergente de tier M (`SKILL.md`, Fase 6) aplica sobre el resultado
+sintetizado (si la síntesis no cumple criterios, se itera).
+
 Adapta la plantilla al caso: reemplaza subtareas, prompts y esquemas. Reglas
 comunes: cada agente recibe en su prompt el CONTEXTO que necesita (mini-spec
 + paquete de contexto relevante — los agentes de workflow NO ven la

@@ -196,33 +196,47 @@ else
   [ "$DIARIO_NB" -eq 1 ] || { echo "FAIL E7-B3: tabla Diario de $RECB tiene $DIARIO_NB filas (compacto trivial espera 1)"; exit 1; }
 fi
 
-# Total de líneas de CONTENIDO ≤ 15: bullets de Mini-spec + filas de datos de
-# Efectos/Diario/Verificación final + bullets de Resultado (sin contar
-# headings `## ...` ni filas de encabezado/separador de tabla).
-CONTENT_N=$(awk '
-  /^## Mini-spec/  { sec="mini"; next }
-  /^## Efectos/    { sec="efectos"; next }
-  /^## Diario/     { sec="diario"; next }
-  /^## Verificaci/ { sec="verif"; next }
-  /^## Resultado/  { sec="resultado"; next }
-  /^## /           { sec=""; next }
-  sec=="mini" && /^- /      { n++ }
-  sec=="resultado" && /^- / { n++ }
-  sec=="efectos" && /^\|/ {
-    if (!sep_e && /^\|[ :|-]+$/ && /-/) { sep_e=1; next }
-    if (sep_e) n++
-  }
-  sec=="diario" && /^\|/ {
-    if (!sep_d && /^\|[ :|-]+$/ && /-/) { sep_d=1; next }
-    if (sep_d) n++
-  }
-  sec=="verif" && /^\|/ {
-    if (!sep_v && /^\|[ :|-]+$/ && /-/) { sep_v=1; next }
-    if (sep_v) n++
-  }
-  END { print n+0 }
-' "$RECB")
-CONTENT_MAX=15; [ "$IS_PELADA" -eq 1 ] && CONTENT_MAX=20
-[ "$CONTENT_N" -le "$CONTENT_MAX" ] || { echo "FAIL E7-B3: $RECB tiene $CONTENT_N líneas de contenido (compacto espera ≤$CONTENT_MAX para esta ruta)"; exit 1; }
+# --- Forma del record compacto: cotas POR SECCION, derivadas de la plantilla ---
+# (2026-09-06) Antes esto era un unico conteo agregado de lineas de contenido con
+# un tope ajustado a lo que dieron las primeras corridas que pasaron (20). Un
+# umbral fiteado a la salida observada de un artefacto generativo se rompe apenas
+# la salida varia: se observaron 18, 18, 21 y 26 sobre el MISMO caso. Peor, el
+# total no distinguia un defecto real (bullet prescrito faltante o duplicado) de
+# evidencia legitima de mas (una fila por anti-criterio en vez de una sola).
+# Ahora cada cota sale del contrato de `references/plantillas-record.md` y el
+# fallo dice QUE seccion se desbordo.
 
-echo "OK: E7 (presupuesto: Estado 'cerrado por bloqueo (pre-aprobado)', sin efectos activos, sin lock/En curso, sin cuelgue; B3: record compacto S con $EFECTOS_N efecto(s), $DIARIO_NB fila(s) de diario, $CONTENT_N líneas de contenido)"
+# Bullets de Resultado: el conjunto EXACTO que prescribe la plantilla de la ruta.
+if [ "$IS_PELADA" -eq 1 ]; then
+  ESPERADOS=(Estado "Escalación" "Evidencia final" "Anomalías pendientes" Commits Aprendizajes "Preguntas tardías")
+  VERIF_MAX=6   # 4 flags de red.sh + criterio del pedido + UNA fila de anti-criterios
+else
+  ESPERADOS=(Estado "Evidencia final" "Anomalías pendientes" Commits Aprendizajes "Preguntas tardías")
+  VERIF_MAX=3   # criterio unico + anti-criterios, con holgura de 1
+fi
+
+# Nombre del bullet = texto entre "- " y el primer ":" o "(" .
+mapfile -t RES_BULLETS < <(awk '/^## Resultado/{s=1;next} /^## /{s=0} s && /^- /{print}' "$RECB" \
+  | sed 's/^- //; s/[:(].*//; s/[[:space:]]*$//')
+
+for got in "${RES_BULLETS[@]}"; do
+  hit=0; for exp in "${ESPERADOS[@]}"; do [ "$got" = "$exp" ] && hit=1 && break; done
+  [ "$hit" -eq 1 ] || { echo "FAIL E7-B3: $RECB tiene el bullet de Resultado '$got', que la plantilla compacta no prescribe (la plantilla es cerrada: no se copian bullets de la completa)"; exit 1; }
+done
+for exp in "${ESPERADOS[@]}"; do
+  hit=0; for got in "${RES_BULLETS[@]}"; do [ "$got" = "$exp" ] && hit=1 && break; done
+  [ "$hit" -eq 1 ] || { echo "FAIL E7-B3: a $RECB le falta el bullet de Resultado '$exp' que la plantilla compacta prescribe"; exit 1; }
+done
+
+# Filas de datos de Verificación final (sin encabezado ni separador).
+VERIF_N=$(awk '
+  /^## Verificaci/ { sec=1; next }
+  /^## /           { sec=0; next }
+  sec && /^\|/ {
+    if (!sep && /^\|[ :|-]+$/ && /-/) { sep=1; next }
+    if (sep) n++
+  }
+  END { print n+0 }' "$RECB")
+[ "$VERIF_N" -le "$VERIF_MAX" ] || { echo "FAIL E7-B3: tabla Verificación final de $RECB tiene $VERIF_N filas (la plantilla compacta prescribe ≤$VERIF_MAX: los anti-criterios van en UNA fila, no una por C-N)"; exit 1; }
+
+echo "OK: E7 (presupuesto: Estado 'cerrado por bloqueo (pre-aprobado)', sin efectos activos, sin lock/En curso, sin cuelgue; B3: record compacto S con $EFECTOS_N efecto(s), $DIARIO_NB fila(s) de diario, $VERIF_N fila(s) de verificación, ${#RES_BULLETS[@]} bullet(s) de Resultado — forma exacta de la plantilla $([ "$IS_PELADA" -eq 1 ] && echo pelada || echo trivial))"
