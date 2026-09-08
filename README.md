@@ -9,10 +9,14 @@ you approve *executable examples* of what you want, not a paragraph of prose.
 After the gate, the agent converges on those examples and cannot quietly
 redefine success.
 
-> **Language note:** the plugin's user-facing output is **Spanish**. The code,
-> tools and this README are in English, but every prompt, gate screen and task
-> record the agent produces will be in Spanish. This is a deliberate design
-> choice, not an oversight.
+> **Language:** GRAPH answers in **the language you wrote your request in** —
+> ask in English, get English. What it *writes to disk* (the `.graph/`
+> knowledge base and task records) follows a language pinned per repository,
+> declared as `Idioma:` in `.graph/INDEX.md` and set when you run
+> `/graph:init`. That is pinned rather than per-session on purpose: the
+> knowledge base is shared across sessions and people, and one file per
+> language would stop being readable as a single thing. Repositories
+> initialized before this existed keep Spanish.
 
 ## The problem it addresses
 

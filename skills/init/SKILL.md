@@ -7,7 +7,12 @@ description: "GRAPH — setup del repo: escanea el proyecto, verifica comandos r
 Argumentos: "$ARGUMENTS" (vacío = setup normal; "refresh" = re-escaneo directo).
 
 Tu trabajo es generar o refrescar `.graph/`, la base de conocimiento de ESTE
-repo. Recorre las fases en orden. Todo lo que escribas va en español.
+repo. Recorre las fases en orden. **Idioma**: la conversación va en el idioma del
+pedido del usuario; los archivos de `.graph/` van en el idioma que declares
+en la línea `Idioma:` del encabezado de `INDEX.md` — usá el del pedido si
+estás creando `.graph/` de cero, y RESPETÁ el ya declarado en un refresh
+(cambiar el idioma de una base existente dejaría medio archivo en cada uno).
+Sin línea `Idioma:` previa, español.
 
 Esquema de `.graph/` vigente: 5
 
@@ -99,7 +104,7 @@ Crea los archivos con EXACTAMENTE estos formatos (rellenando con lo escaneado):
 
 ```markdown
 # GRAPH · <nombre del proyecto>
-> Actualizado: <YYYY-MM-DD> · Estado: completo · Esquema: 5
+> Actualizado: <YYYY-MM-DD> · Estado: completo · Esquema: 5 · Idioma: <es|en|…>
 
 **Qué es:** <1-2 frases>
 **Stack:** <lenguajes y frameworks clave>
