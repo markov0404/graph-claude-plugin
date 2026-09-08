@@ -781,4 +781,36 @@ set -e
 grep -qF "diag:" "$ERR_FF" \
   || { echo "FAIL (ff): stderr sin diag. stderr: $(cat "$ERR_FF")"; exit 1; }
 
-echo "OK: test-oraculo-map.sh — todos los casos pasaron (incl. poda de artefactos y modo fuerza r9 + fix r9)"
+# === (gg) artefacto ignorado por git NO entra al mapa =======================
+# Hallado autoaplicando el plugin a su propio repo (2026-09-08): tests/graph-e2.out
+# —salida de una corrida headless, en .gitignore y sin rastrear— entraba como fila.
+# El mapa describe la superficie de test del REPO; lo que git ignora no lo es.
+# Contraste deliberado con el caso (l): un archivo RASTREADO bajo tests/ sin tests
+# detectables SÍ debe listarse (marcado débil). La diferencia no es la extensión,
+# es si el repo lo reconoce como suyo.
+echo "— caso (gg): artefacto ignorado por git se poda; el rastreado sin tests se conserva"
+REPO_GG="$(mktemp -d -p "$SCRATCH_ROOT")"
+mkdir -p "$REPO_GG/tests"
+git -C "$REPO_GG" init -q
+git -C "$REPO_GG" config user.email "om@example.com"
+git -C "$REPO_GG" config user.name "om"
+printf 'tests/*.out\n' > "$REPO_GG/.gitignore"
+cat > "$REPO_GG/tests/test_ok.py" <<'EOF'
+def test_ok():
+    assert 1 == 1
+EOF
+cat > "$REPO_GG/tests/NOTAS.md" <<'EOF'
+Prosa rastreada, sin tests ejecutables.
+EOF
+git -C "$REPO_GG" add -A
+git -C "$REPO_GG" commit -qm base >/dev/null
+printf 'salida de una corrida headless\n' > "$REPO_GG/tests/corrida.out"
+OUT_GG="$("$TOOL" scan "$REPO_GG")"
+printf '%s' "$OUT_GG" | grep -q 'tests/corrida.out' \
+  && { echo "FAIL (gg): tests/corrida.out está ignorado por git y NO debe entrar al mapa: $OUT_GG"; exit 1; }
+printf '%s' "$OUT_GG" | grep -q 'tests/NOTAS.md' \
+  || { echo "FAIL (gg): tests/NOTAS.md está RASTREADO y debe listarse (débil), no podarse: $OUT_GG"; exit 1; }
+printf '%s' "$OUT_GG" | grep -q 'tests/test_ok.py' \
+  || { echo "FAIL (gg): falta el test real: $OUT_GG"; exit 1; }
+
+echo "OK: test-oraculo-map.sh — todos los casos pasaron (incl. poda de artefactos, poda por .gitignore, y modo fuerza r9 + fix r9)"

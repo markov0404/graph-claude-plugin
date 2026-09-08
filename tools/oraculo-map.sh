@@ -457,10 +457,24 @@ scan_mode() {
   local -a rels=()
   local f rel
 
+  # Conjunto de paths IGNORADOS por git, calculado UNA vez (no una llamada por
+  # archivo: eso mataría el determinismo de costo en repos grandes). Hallado
+  # autoaplicando el plugin a su propio repo (2026-09-08): `tests/graph-e2.out`
+  # —salida de una corrida headless, listada en .gitignore y sin rastrear—
+  # entraba como fila del mapa de oráculo. El mapa describe la superficie de
+  # test del REPO; lo que git ignora no es parte de esa superficie. Generaliza
+  # el pruning de .pyc de r8 en vez de acumular denylists por extensión, y no
+  # toca TEST_PATTERN (invariante: VERBATIM el de red.sh).
+  # Si <dir> no es un repo git, IGNORADOS queda vacío y no se filtra nada.
+  local IGNORADOS=""
+  IGNORADOS="$(git -C "$dir" ls-files --others --ignored --exclude-standard 2>/dev/null || true)"
+
   # archivos regulares que matchean TEST_PATTERN -------------------------
   while IFS= read -r -d '' f; do
     rel="${f#"$dir"/}"
     printf '%s' "$rel" | grep -qE "$TEST_PATTERN" || continue
+    # ignorado por git → no es superficie de test del repo
+    if [ -n "$IGNORADOS" ] && printf '%s\n' "$IGNORADOS" | grep -qxF "$rel"; then continue; fi
     # extensiones compiladas/binarias: fuera aunque el path matchee el patrón
     case "$rel" in
       *.pyc|*.pyo|*.so|*.o|*.class|*.jar|*.wasm) continue ;;
