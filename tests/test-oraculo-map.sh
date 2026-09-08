@@ -517,7 +517,7 @@ EOF
     || { echo "FAIL (s): diag debería mencionar que fue find quien falló. stderr: $(cat "$ERR_S")"; exit 1; }
 fi
 
-echo "— caso (t): artefactos de ejecución podados (__pycache__/*.pyc, .pytest_cache) — hallazgo un repo grande externo"
+echo "— caso (t): artefactos de ejecución podados (__pycache__/*.pyc, .pytest_cache) — hallazgo en un repo grande real"
 REPO_T="$(mktemp -d -p "$SCRATCH_ROOT")"
 mkdir -p "$REPO_T/tests/__pycache__" "$REPO_T/tests/.pytest_cache/v/cache"
 printf 'def test_real():\n    assert 1 == 1\n' > "$REPO_T/tests/test_real.py"

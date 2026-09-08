@@ -44,7 +44,7 @@
   "displayName": "GRAPH",
   "version": "0.1.0",
   "description": "Sistema de escalado por capas: convierte un prompt corto en mini-spec, contexto, harness, loop convergente y grafo de agentes, con conocimiento acumulativo por repo en .graph/",
-  "author": { "name": "dani", "email": "markov0404@users.noreply.github.com" },
+  "author": { "name": "markov0404" },
   "license": "MIT",
   "keywords": ["orchestration", "agents", "graph-engineering"]
 }

@@ -75,7 +75,7 @@ Config nueva **E** (gate por ejemplos) sobre el banco de trampas de r5 — que b
 
 ## Amenazas declaradas
 
-- El banco de r5 lo diseñamos nosotros; el nivel 3 (tareas reales) no tiene huecos de intención porque un repo grande externo los tiene bien capturados — o sea que **E no se puede validar contra tareas reales con este banco**. Pendiente honesto: minar tareas de un repo con tests flojos, donde los huecos abundan.
+- El banco de r5 lo diseñamos nosotros; el nivel 3 (tareas reales) no tiene huecos de intención porque ese repo los tiene bien capturados — o sea que **E no se puede validar contra tareas reales con este banco**. Pendiente honesto: minar tareas de un repo con tests flojos, donde los huecos abundan.
 - La calidad de los ejemplos que el agente redacta es prosa-del-modelo hasta que se ejecutan; el RED obligatorio (paso 3) es lo único que la vuelve verificable, y solo prueba que fallan, no que capturen lo correcto — eso lo valida el humano en el gate, que es el punto del diseño.
 - "All Smoke, No Alarm": 80.2% de los tests escritos por agentes tienen oráculo débil. Los ejemplos de E los escribe un agente: **la heurística de fuerza mínima de `oraculo-map.sh` debe correr sobre ellos antes del gate**, y su resultado se muestra en la pantalla.
 - N=2 por celda, 1 máquina.

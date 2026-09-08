@@ -48,7 +48,7 @@ Filtro antes de mostrar: descartar las que violan un invariante vivo o **repiten
 
 ### 4. Grafo de exploración — `.graph/exploracion.md`
 
-Nodos: hipótesis, intentos, referencias del SOTA. Aristas: `refuta`, `variante-de`, `deriva-de`, `sostiene`. Todo nodo refutado carga **su evidencia** (el test que falló, la medición, la cita) y, donde se pueda, es **ejecutable** — el patrón del `tests/historical/` de un repo grande externo, con la refutación viva como xfail estricto.
+Nodos: hipótesis, intentos, referencias del SOTA. Aristas: `refuta`, `variante-de`, `deriva-de`, `sostiene`. Todo nodo refutado carga **su evidencia** (el test que falló, la medición, la cita) y, donde se pueda, es **ejecutable** — el patrón de un `tests/historical/` con la refutación viva como xfail estricto.
 
 Consumidor concreto y nuevo: el filtro de no-refutación del punto 3. **Sin el grafo ese filtro no puede existir.** Esto lo distingue de los cuatro grafos de memoria que medimos en cero: aquellos describían lo conocido (estructura, cobertura, convenciones) — reconstruible por el modelo; éste describe **la búsqueda** — existe solo porque alguien la hizo.
 
@@ -56,7 +56,7 @@ Re-normalización sin pérdida como todo nodo del esquema.
 
 ### 5. Preregistro: lo que hace que una refutación cuente
 
-Antes de ejecutar un intento exploratorio, el nodo declara **qué lo refutaría**. Sin ese compromiso previo, siempre se puede racionalizar que en realidad no falló. Es la metodología que el usuario ya practica a mano en un repo grande externo (preregistro, invariantes canonicos numerados, cementerio ejecutable); acá se abarata la contabilidad, no se inventa el método.
+Antes de ejecutar un intento exploratorio, el nodo declara **qué lo refutaría**. Sin ese compromiso previo, siempre se puede racionalizar que en realidad no falló. Es la metodología que el usuario ya practica a mano en otro repo suyo (preregistro, invariantes canónicos numerados, cementerio ejecutable); acá se abarata la contabilidad, no se inventa el método.
 
 ### 5.bis Disparador de anomalía: el "¿por qué?" forzado (la relevancia como consecuencia)
 

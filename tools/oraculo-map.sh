@@ -431,7 +431,8 @@ scan_mode() {
   dir="$(cd "$dir" && pwd -P)"
 
   # Artefactos de ejecución podados: nunca son oráculo y en un repo real
-  # inundan el mapa (medido en un repo grande externo: 155 de 307 filas eran __pycache__/*.pyc).
+  # inundan el mapa (medido en un repo grande real: 155 de 307 filas eran
+  # __pycache__/*.pyc).
   local -a prune_expr=( \( -name .git -o -name node_modules -o -name .graph -o -name __pycache__ -o -name .pytest_cache -o -name .tox -o -name .venv -o -name venv -o -name dist -o -name build -o -name .mypy_cache -o -name .ruff_cache \) -prune -o )
 
   local find_files find_links find_err
