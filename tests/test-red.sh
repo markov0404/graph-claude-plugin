@@ -435,4 +435,58 @@ run_red "$REPO_O" "$BASE_O" "$CMD_SUITE" "$BASE_SCOPE"
 [ "$RED_RC" -eq "$FIRST_RC" ] \
   || { echo "FAIL (o): exit code no determinístico: $FIRST_RC vs $RED_RC"; exit 1; }
 
-echo "OK: red.sh (limpio, test tocado, suite roja, scope violado, caracterización congelada, tests nuevos con/sin cobertura, error interno fail-closed, rename, borrado, directorio de tests nuevo/CRÍTICO, espacios/acentos, naming no-python, worktree, determinismo)"
+# === (p)(q) atribuible: divergencia vs error determinable ==================
+# Regla de dani (2026-09-08): un rojo solo es ERROR si podemos atribuirlo a
+# nuestro delta; si la base falla igual, es DIVERGENCIA y revertirla borraria
+# la evidencia. La prueba es correr la misma suite sobre el baseline puro y
+# comparar CONJUNTOS de fallos, no rojo/verde.
+echo "— caso (p): suite roja con base ya roja y sin fallos nuevos → atribuible:false"
+REPO_P="$(new_repo)"
+cat > "$REPO_P/tests/test_ajeno.py" <<'EOF'
+import unittest
+
+
+class TestAjeno(unittest.TestCase):
+    def test_ajeno_roto_de_fabrica(self):
+        self.fail("rojo preexistente, ajeno a la tarea")
+EOF
+git -C "$REPO_P" add -A
+git -C "$REPO_P" -c user.email=fx@fx -c user.name=fx commit -qm "base con rojo preexistente" >/dev/null
+BASE_P="$(git -C "$REPO_P" rev-parse HEAD)"
+cat >> "$REPO_P/app/calc.py" <<'EOF'
+
+
+def mul(a, b):
+    return a * b
+EOF
+run_red "$REPO_P" "$BASE_P" "$CMD_SUITE" "$BASE_SCOPE"
+case "$RED_JSON" in
+  *'"suite_verde":false'*'"atribuible":false'*) ;;
+  *) echo "FAIL (p): esperaba suite_verde:false + atribuible:false, salio: $RED_JSON"; exit 1 ;;
+esac
+
+echo "— caso (q): el cambio rompe un test que antes pasaba → atribuible:true"
+REPO_Q="$(new_repo)"
+cat > "$REPO_Q/tests/test_ajeno.py" <<'EOF'
+import unittest
+
+
+class TestAjeno(unittest.TestCase):
+    def test_ajeno_roto_de_fabrica(self):
+        self.fail("rojo preexistente, ajeno a la tarea")
+EOF
+git -C "$REPO_Q" add -A
+git -C "$REPO_Q" -c user.email=fx@fx -c user.name=fx commit -qm "base con rojo preexistente" >/dev/null
+BASE_Q="$(git -C "$REPO_Q" rev-parse HEAD)"
+python3 - "$REPO_Q/app/calc.py" <<'EOF'
+import sys
+p=sys.argv[1]; s=open(p).read()
+open(p,'w').write(s.replace("return a + b","return a + b + 1000"))
+EOF
+run_red "$REPO_Q" "$BASE_Q" "$CMD_SUITE" "$BASE_SCOPE"
+case "$RED_JSON" in
+  *'"suite_verde":false'*'"atribuible":true'*) ;;
+  *) echo "FAIL (q): esperaba suite_verde:false + atribuible:true, salio: $RED_JSON"; exit 1 ;;
+esac
+
+echo "OK: red.sh (limpio, test tocado, suite roja, scope violado, caracterización congelada, tests nuevos con/sin cobertura, error interno fail-closed, rename, borrado, directorio de tests nuevo/CRÍTICO, espacios/acentos, naming no-python, worktree, determinismo, atribuible divergencia/error)"

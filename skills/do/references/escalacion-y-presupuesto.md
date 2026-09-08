@@ -18,7 +18,28 @@ default:
 
 ## Escalación por criterios (sin contadores — regla dura 2 intacta)
 
-- **Sucio** (cualquiera de: tests tocados, suite roja, scope violado) → escalación: **reinicio limpio** — revertir por el ledger de efectos al baseline (inversas en orden LIFO, efecto #0 al final); los tests de caracterización (anti-ejemplos) del efecto #1, si existen, se CONSERVAN (fueron aprobados en el gate y son exactamente el oráculo que el pipeline completo quiere) — su fila pasa a `conservado`, con inversa disponible si el humano pide reversión total — y entrar al pipeline completo desde la Fase 1, con el informe de `tools/red.sh` como insumo de la mini-spec. NUNCA continuar la sesión contaminada. Tras la reversión, registra una fila nueva en Efectos: `base re-tomada (reinicio limpio) = <hash>` — la regla "no dupliques el efecto #0" (Fase 6) aplica a retomar SIN reversión, no a este caso: acá el árbol cambió por el LIFO y el nuevo punto de partida debe quedar explícito.
+- **Antes de clasificar nada: ¿el rojo es ATRIBUIBLE?** `red.sh` devuelve `atribuible`
+  junto al resto del JSON. Solo aplica cuando `suite_verde:false`, y responde una
+  pregunta mecánica: corrida la MISMA suite sobre el baseline puro en el mismo
+  entorno, ¿hay fallos NUEVOS? (se comparan CONJUNTOS, no rojo/verde: si la base ya
+  venía roja, lo que importa es si aparecieron fallos que antes no estaban).
+  - `atribuible:true` → el delta es nuestro y la expectativa estaba preregistrada:
+    **error determinable**, sigue la regla de "Sucio" de abajo.
+  - `atribuible:false` → la base falla igual y no hay fallos nuevos: el cambio NO es
+    la causa. Eso **no es suciedad, es una DIVERGENCIA** — algo de lo que nadie
+    declaró se movió. **NO se revierte y NO se escala por esa causa**: revertir una
+    divergencia es borrar la evidencia antes de mirarla. Se registra como anomalía
+    de la regla dura 8 con `bifurcación: pendiente`, y el comportamiento no
+    declarado que quedó expuesto va a "Huecos conocidos" de `.graph/oraculo.md`
+    (Fase 8) — es material de pregunta del gate, no de rollback. El criterio del
+    PEDIDO sigue exigiéndose igual: si el oráculo de la tarea no pasa, no convergió.
+  - Si falta la clave (red.sh viejo o doble de prueba): tratala como `true`, que es
+    el lado conservador.
+  Esto además destraba un caso que el diseño previo hacía imposible: en un repo cuya
+  suite YA está roja por causas ajenas, `suite_verde:false` era permanente y ninguna
+  tarea podía cerrar nunca.
+
+- **Sucio** (tests tocados, scope violado, o suite roja ATRIBUIBLE) → escalación: **reinicio limpio** — revertir por el ledger de efectos al baseline (inversas en orden LIFO, efecto #0 al final); los tests de caracterización (anti-ejemplos) del efecto #1, si existen, se CONSERVAN (fueron aprobados en el gate y son exactamente el oráculo que el pipeline completo quiere) — su fila pasa a `conservado`, con inversa disponible si el humano pide reversión total — y entrar al pipeline completo desde la Fase 1, con el informe de `tools/red.sh` como insumo de la mini-spec. NUNCA continuar la sesión contaminada. Tras la reversión, registra una fila nueva en Efectos: `base re-tomada (reinicio limpio) = <hash>` — la regla "no dupliques el efecto #0" (Fase 6) aplica a retomar SIN reversión, no a este caso: acá el árbol cambió por el LIFO y el nuevo punto de partida debe quedar explícito.
 - **Un solo record, se EXTIENDE**: la escalación NO abre un task record nuevo. Al record compacto ya escrito se le AÑADE la sección `## Escalación a pipeline completo`, seguida de las secciones completas del pipeline (Mini-spec, Intención capturada, Diario, Verificación final, Resultado) con la plantilla **completa** (la sección "Plantillas del task record" de `SKILL.md`). Nada de lo ya escrito en el record compacto se reescribe (regla "jamás lo pises", Fase 6) — la tabla de Efectos es UNA SOLA y sigue numerando desde donde iba.
 - **Fricción menor** (archivos auxiliares benignos, warnings) → NO escala: se registra en el record (Diario/Resultado). Es la anti-sobre-escalación: la red no es un gate binario ingenuo.
 - **Retomar una pelada interrumpida**: si `.graph/INDEX.md` trae `En curso` de esta MISMA tarea en ruta pelada (Fase 0, mismo trato que cualquier retomada): NO se re-ejecuta la Fase 0.5 (la ruta ya elegida es trinquete, regla dura 3) — contexto mínimo = el pedido + INDEX, directo a la ejecución directa (`SKILL.md`, "Ruta pelada-con-red", punto 4) desde donde el Diario quedó; la red corre igual al cierre.

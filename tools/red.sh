@@ -27,7 +27,10 @@
 #                  contrato ni cuenta como prefijo real.
 #
 # stdout: UNA línea JSON —
-#   {"tests_intactos":bool,"suite_verde":bool,"scope_respetado":bool,"oraculo_independiente":bool}
+#   {"tests_intactos":bool,"suite_verde":bool,"scope_respetado":bool,"oraculo_independiente":bool,"atribuible":bool}
+#   atribuible — solo informativo si suite_verde=true. Si suite_verde=false:
+#     true  = hay fallos que NO estan en el baseline -> error determinable
+#     false = la base falla igual -> divergencia, no atribuible al cambio
 #
 # stderr: contrato r6 —
 #   `tests_fallidos: <nodeids>`  (de la corrida de la suite; vacía si verde
@@ -127,8 +130,8 @@ TMP_DIRS=()
 JSON_DONE=false
 
 emit_json() {
-  printf '{"tests_intactos":%s,"suite_verde":%s,"scope_respetado":%s,"oraculo_independiente":%s}\n' \
-    "$1" "$2" "$3" "$4"
+  printf '{"tests_intactos":%s,"suite_verde":%s,"scope_respetado":%s,"oraculo_independiente":%s,"atribuible":%s}\n' \
+    "$1" "$2" "$3" "$4" "${5:-true}"
   JSON_DONE=true
 }
 
@@ -406,6 +409,37 @@ if [ "$SUITE_RC" -ne 0 ]; then
   fi
 fi
 
+# --- brazo de control: ¿el rojo es ATRIBUIBLE al cambio? --------------------
+# Regla de dani (2026-09-08): un veredicto inesperado es un ERROR DETERMINABLE
+# solo si podemos atribuirlo a nuestro delta; si no, es una DIVERGENCIA, y
+# revertir una divergencia es borrar la evidencia antes de mirarla.
+# La prueba es mecanica: correr la MISMA suite sobre el baseline puro, en el
+# mismo entorno, y comparar CONJUNTOS de fallos (no rojo/verde: si la base ya
+# venia roja, lo que importa es si aparecieron fallos NUEVOS).
+ATRIBUIBLE=true
+if [ "$SUITE_VERDE" = false ]; then
+  CTRL="$(mktemp -d)"; TMP_DIRS+=("$CTRL")
+  if gitq -C "$DIR" archive "$BASELINE_SHA" 2>/dev/null | tar -x -C "$CTRL" 2>/dev/null; then
+    set +e
+    CTRL_OUT="$(cd "$CTRL" && bash -c "$CMD_SUITE" 2>&1)"
+    CTRL_RC=$?
+    set -e
+    if [ "$CTRL_RC" -ne 0 ]; then
+      CTRL_FALLIDOS="$(printf '%s\n' "$CTRL_OUT" | extract_nodeids | sort -u)"
+      ACT_FALLIDOS="$(printf '%s\n' "$SUITE_OUT" | extract_nodeids | sort -u)"
+      NUEVOS="$(comm -23 <(printf '%s\n' "$ACT_FALLIDOS") <(printf '%s\n' "$CTRL_FALLIDOS") | sed '/^$/d')"
+      if [ -z "$NUEVOS" ]; then
+        ATRIBUIBLE=false
+        echo "diag: la base sale roja igual en este entorno y no hay fallos NUEVOS — el rojo no es atribuible al cambio (divergencia, no error determinable)" >&2
+      else
+        echo "diag: la base tambien sale roja, pero hay fallos nuevos: $(printf '%s' "$NUEVOS" | tr '\n' ' ')" >&2
+      fi
+    fi
+  else
+    echo "diag: no se pudo materializar el baseline para el brazo de control; atribuible queda conservador en true" >&2
+  fi
+fi
+
 echo "tests_fallidos: ${TESTS_FALLIDOS}" >&2
 
-emit_json "$TESTS_INTACTOS" "$SUITE_VERDE" "$SCOPE_RESPETADO" "$ORACULO_INDEPENDIENTE"
+emit_json "$TESTS_INTACTOS" "$SUITE_VERDE" "$SCOPE_RESPETADO" "$ORACULO_INDEPENDIENTE" "$ATRIBUIBLE"
