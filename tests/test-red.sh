@@ -489,4 +489,77 @@ case "$RED_JSON" in
   *) echo "FAIL (q): esperaba suite_verde:false + atribuible:true, salio: $RED_JSON"; exit 1 ;;
 esac
 
-echo "OK: red.sh (limpio, test tocado, suite roja, scope violado, caracterización congelada, tests nuevos con/sin cobertura, error interno fail-closed, rename, borrado, directorio de tests nuevo/CRÍTICO, espacios/acentos, naming no-python, worktree, determinismo, atribuible divergencia/error)"
+# === (r) baseline de retomada: el oráculo del pedido ya existe en el efecto #0
+# Forma del plantado de tests/e6-retomar-lock.sh: la tarea se interrumpe
+# DESPUÉS de commitear el borrador y su test, así que el efecto #0 — "el árbol
+# al ENTRAR a Fase 6" (skills/do/SKILL.md, Fase 6) — YA contiene el oráculo del
+# propio pedido. Con ese baseline el test no es "nuevo del agente" y la red da
+# los 4 flags en true. El brazo de control usa el commit ANTERIOR (el baseline
+# equivocado) y documenta la anomalía espuria: el oráculo del pedido entra al
+# diff como test nuevo, red.sh lo borra de la copia desechable y
+# oraculo_independiente cae a false. Determinista y gratis: git + red.sh, sin
+# ninguna sesión headless.
+echo "— caso (r): baseline de retomada (el oráculo ya existe en el efecto #0)"
+REPO_R="$(new_repo)"
+cat > "$REPO_R/app/greet.py" <<'EOF'
+def saluda(nombre: str) -> str:
+    return f"Hola, {nombre}!"
+EOF
+cat > "$REPO_R/tests/test_greet_e6.py" <<'EOF'
+import unittest
+from app.greet import saluda
+
+
+class GreetE6Test(unittest.TestCase):
+    def test_saluda_con_nombre(self):
+        self.assertEqual(saluda("Ana"), "Hola, Ana!")
+
+    def test_saluda_nombre_vacio(self):
+        self.assertEqual(saluda(""), "Hola!")
+EOF
+git -C "$REPO_R" add -A
+git -C "$REPO_R" -c user.email=fx@fx -c user.name=fx \
+  commit -qm "intento interrumpido: primer borrador de saluda (sin manejar vacío)" >/dev/null
+# Efecto #0 de la retomada: el HEAD que ya incluye borrador + oráculo.
+BASE_R="$(git -C "$REPO_R" rev-parse HEAD)"
+# La retomada corrige el borrador en el working tree, sin tocar el test.
+cat > "$REPO_R/app/greet.py" <<'EOF'
+def saluda(nombre: str) -> str:
+    return f"Hola, {nombre}!" if nombre else "Hola!"
+EOF
+run_red "$REPO_R" "$BASE_R" "$CMD_SUITE" "$BASE_SCOPE"
+[ "$RED_RC" -eq 0 ] || { echo "FAIL (r): exit code $RED_RC (esperaba 0). stderr: $RED_ERR"; exit 1; }
+assert_field tests_intactos true
+assert_field suite_verde true
+assert_field scope_respetado true
+assert_field oraculo_independiente true
+
+# Brazo de control: el MISMO working tree contra el commit ANTERIOR — el error
+# que el plantado de E6 cometía. El oráculo del propio pedido se vuelve "test
+# nuevo del agente" y la red levanta la anomalía espuria.
+run_red "$REPO_R" "$BASE_R~1" "$CMD_SUITE" "$BASE_SCOPE"
+assert_field oraculo_independiente false
+echo "$RED_ERR" | grep -qF "tests nuevos del agente" \
+  || { echo "FAIL (r): el brazo de control no registra el oráculo del pedido como test nuevo del agente. stderr: $RED_ERR"; exit 1; }
+
+# --- verificación ESTÁTICA del plantado de E6 (sin ejecutarlo: ese escenario
+# lanza sesiones headless y cuesta). Los dos brazos de arriba prueban la
+# mecánica sobre un repo de juguete; esto ata el script real al mismo orden.
+E6_SH="$ROOT/tests/e6-retomar-lock.sh"
+[ -f "$E6_SH" ] || { echo "FAIL (r): no existe $E6_SH"; exit 1; }
+bash -n "$E6_SH" \
+  || { echo "FAIL (r): $E6_SH no pasa el chequeo de sintaxis (bash -n)"; exit 1; }
+E6_BASE_HITS="$(grep -nF 'BASE_COMMIT=$(git -C "$E6" rev-parse HEAD)' "$E6_SH" | sed '/^$/d' || true)"
+E6_COMMIT_HITS="$(grep -nF 'commit -qm "intento interrumpido' "$E6_SH" | sed '/^$/d' || true)"
+E6_BASE_N="$(printf '%s' "$E6_BASE_HITS" | grep -c . || true)"
+E6_COMMIT_N="$(printf '%s' "$E6_COMMIT_HITS" | grep -c . || true)"
+[ "$E6_BASE_N" -eq 1 ] \
+  || { echo "FAIL (r): se esperaba EXACTAMENTE 1 línea 'BASE_COMMIT=\$(git -C \"\$E6\" rev-parse HEAD)' en $E6_SH, hay $E6_BASE_N: ${E6_BASE_HITS:-ninguna}"; exit 1; }
+[ "$E6_COMMIT_N" -eq 1 ] \
+  || { echo "FAIL (r): se esperaba EXACTAMENTE 1 línea con 'commit -qm \"intento interrumpido' en $E6_SH, hay $E6_COMMIT_N: ${E6_COMMIT_HITS:-ninguna}"; exit 1; }
+E6_BASE_LN="${E6_BASE_HITS%%:*}"
+E6_COMMIT_LN="${E6_COMMIT_HITS%%:*}"
+[ "$E6_BASE_LN" -gt "$E6_COMMIT_LN" ] \
+  || { echo "FAIL (r): en $E6_SH el BASE_COMMIT del efecto #0 se captura en la línea $E6_BASE_LN, ANTES del commit 'intento interrumpido' (línea $E6_COMMIT_LN): ese efecto #0 deja tests/test_greet_e6.py fuera del baseline, red.sh clasifica el oráculo del propio pedido como test nuevo del agente (oraculo_independiente:false) y la retomada cierra con una anomalía espuria"; exit 1; }
+
+echo "OK: red.sh (limpio, test tocado, suite roja, scope violado, caracterización congelada, tests nuevos con/sin cobertura, error interno fail-closed, rename, borrado, directorio de tests nuevo/CRÍTICO, espacios/acentos, naming no-python, worktree, determinismo, atribuible divergencia/error, baseline de retomada con oráculo (E6))"
