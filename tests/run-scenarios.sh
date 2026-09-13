@@ -7,6 +7,9 @@ FIXDIR="${GRAPH_FIXTURES_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/graph-plugin/fixtu
 CC=(claude -p --plugin-dir "$ROOT" --dangerously-skip-permissions)
 
 "$ROOT/tests/test-hook.sh"
+"$ROOT/tests/test-red.sh"
+"$ROOT/tests/test-oraculo-map.sh"
+"$ROOT/tests/test-exploracion.sh"
 "$ROOT/tests/make-fixtures.sh"
 "$ROOT/tests/test-symbol-map.sh"
 JS="$FIXDIR/fixture-js"
@@ -44,5 +47,7 @@ grep -qiE "gate|apruéb|aprobar" "$E3OUT" || { echo "FAIL E3: no presentó el ga
 "$ROOT/tests/e5-bloqueo.sh"
 "$ROOT/tests/e6-retomar-lock.sh"
 "$ROOT/tests/e7-presupuesto.sh"
+set +e; "$ROOT/tests/e8-escalacion.sh"; rc=$?; set -e
+[ $rc -ne 1 ] || exit 1
 
-echo "OK: escenarios automatizados (E1-E7)"
+echo "OK: escenarios automatizados (E1-E8)"
