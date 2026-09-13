@@ -42,9 +42,6 @@ cp -r "$PY" "$E6"
 git -C "$E6" add -A
 git -C "$E6" -c user.email=fx@fx -c user.name=fx commit -qm "post-init e6" > /dev/null || true
 
-# Base del efecto #0: HEAD antes del "intento interrumpido" que sigue.
-BASE_COMMIT=$(git -C "$E6" rev-parse HEAD)
-
 # --- simula el intento interrumpido: un primer borrador REAL, ya commiteado,
 # que falla el caso de nombre vacío (consistente con la fila de Diario
 # plantada más abajo) — así retomar de verdad exige converger, no es un
@@ -64,6 +61,16 @@ def test_saluda_nombre_vacio():
 EOF
 git -C "$E6" add -A
 git -C "$E6" -c user.email=fx@fx -c user.name=fx commit -qm "intento interrumpido: primer borrador de saluda (sin manejar vacío)" > /dev/null
+
+# Base del efecto #0: el HEAD que YA incluye el borrador y el oráculo
+# commiteados — el árbol tal como queda al ENTRAR a Fase 6
+# (skills/do/SKILL.md, Fase 6: "efecto #0 = base git ... al entrar a Fase 6").
+# Capturarlo ANTES de este commit dejaría tests/test_greet_e6.py fuera del
+# efecto #0: tools/red.sh clasificaría el oráculo del PROPIO pedido como test
+# nuevo del agente, lo borraría de la copia desechable y devolvería
+# oraculo_independiente:false, y la retomada cerraría con una anomalía
+# espuria (bifurcación: pendiente) en vez de limpio.
+BASE_COMMIT=$(git -C "$E6" rev-parse HEAD)
 
 SLUG="e6-retoma"
 TODAY="$(date +%Y-%m-%d)"
@@ -155,6 +162,17 @@ DIARIO_N=$(awk '/^## Diario/{f=1;next} /^## /{f=0} f' "$REC" | awk '
 # Al cierre no queda .lock ni línea En curso.
 [ ! -f "$E6/.graph/.lock" ] || { echo "FAIL E6: quedó .graph/.lock tras la corrida (Fase 8 debía limpiarlo)"; exit 1; }
 ! grep -qF "**En curso:**" "$E6/.graph/INDEX.md" || { echo "FAIL E6: quedó línea En curso en INDEX.md tras el cierre"; exit 1; }
+
+# Una retomada limpia no deja deuda de anomalías. Estas dos aserciones son
+# las que DISCRIMINAN el baseline plantado: si el efecto #0 del record se
+# capturara antes del commit del "intento interrumpido", tools/red.sh vería
+# el oráculo del propio pedido (tests/test_greet_e6.py) como test nuevo del
+# agente y devolvería oraculo_independiente:false — divergencia que la regla
+# dura 8 obliga a registrar, y que en modo --gate-aprobado cierra con
+# `bifurcación: pendiente` en el record y `**Anomalías pendientes:**` en
+# INDEX. Sin estas dos líneas, E6 pasaría igual con el plantado incoherente.
+! grep -qF '**Anomalías pendientes:**' "$E6/.graph/INDEX.md" || { echo "FAIL E6: quedó la línea **Anomalías pendientes:** en INDEX.md tras el cierre (una retomada limpia no deja deuda de anomalías)"; exit 1; }
+! grep -qF 'bifurcación: pendiente' "$REC" || { echo "FAIL E6: el record $REC quedó con 'bifurcación: pendiente' (una retomada limpia no deja deuda de anomalías)"; exit 1; }
 
 # La convergencia fue real: la suite completa del fixture queda en verde.
 if ! (cd "$E6" && python3 -m pytest -q); then

@@ -6,5 +6,5 @@ __pycache__/
 bench/out-ablacion/
 bench/real/out/
 
-# investigacion: vive en el repo privado graph-research, nunca en el publico
+# investigacion y benchmarks: viven en un repo privado aparte, nunca en el publico
 bench/
