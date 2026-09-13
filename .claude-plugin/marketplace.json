@@ -1,12 +1,12 @@
 {
   "name": "graph-marketplace",
-  "description": "Marketplace del plugin graph — escalado por capas con conocimiento acumulativo por repo",
+  "description": "Marketplace del plugin graph — apruebas ejemplos ejecutables de tu pedido antes de que se escriba nada, y el repo acumula lo aprendido en .graph/",
   "owner": { "name": "dani" },
   "plugins": [
     {
       "name": "graph",
       "source": "./",
-      "description": "Sistema de escalado por capas con conocimiento acumulativo por repo"
+      "description": "Apruebas ejemplos ejecutables de lo que entendió de tu pedido antes de que se escriba nada; después implementa, verifica con evidencia y acumula conocimiento del repo en .graph/"
     }
   ]
 }
