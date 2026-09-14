@@ -339,7 +339,13 @@ que `symbol-map.sh`/`oraculo-map.sh` en las fases anteriores).
 
 Muestra al usuario un resumen de UNA pantalla: qué entendió el sistema (lo
 esencial de INDEX.md) y el `constitution.md` completo recién generado — es
-SU documento, y esta es su primera oportunidad de afinarlo. Pregunta con
+SU documento, y esta es su primera oportunidad de afinarlo. Junto a las
+líneas C1..CN, y ANTES de preguntar nada, mostrá TEXTUAL esta línea fija —
+sin ella el usuario lee reglas sin saber qué hacen ni de quién son:
+
+> Estas reglas (C1..CN) se aplican como anti-criterios en cada /graph:do y tienen precedencia sobre lo que pidas; solo vos las editás — el sistema nunca las toca por su cuenta.
+
+Recién entonces pregunta con
 AskUserQuestion si hay algo que corregir, en cualquiera de los dos. Cada
 corrección se aplica DE INMEDIATO al archivo correspondiente: es el primer
 aprendizaje del repo.
