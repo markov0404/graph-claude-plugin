@@ -1,5 +1,5 @@
 ---
-description: "GRAPH — comando maestro: convierte un pedido en ejecución disciplinada por capas (mini-spec → contexto → preflight → tier → gate → ejecución convergente → cierre). Invocar con /graph:do <pedido> [--tier S|M|L] [--quick] [--full] [--budget <tokens>] [--gate-aprobado <archivo>] [--explorar]"
+description: "GRAPH — comando maestro: te muestra ejemplos ejecutables de lo que entendió de tu pedido y espera tu OK antes de escribir nada; después implementa, verifica con evidencia real y acumula conocimiento del repo en .graph/. Invocar con /graph:do <pedido> [--tier S|M|L] [--quick] [--full] [--budget <tokens>] [--gate-aprobado <archivo>] [--explorar]"
 ---
 
 # /graph:do — pipeline GRAPH

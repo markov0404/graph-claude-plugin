@@ -1,5 +1,5 @@
 # Mapa de oráculo · graph-plugin
-> Esquema-oraculo: 1 · Generado: /graph:init 2026-09-08 · Última tarea: runner-suite-real
+> Esquema-oraculo: 1 · Generado: /graph:init 2026-09-08 · Última tarea: descripciones-plugin-sin-capas
 
 | área / comportamiento | checks | fuerza | vigencia | origen |
 |---|---|---|---|---|
@@ -16,7 +16,10 @@
 | oraculo-map.sh: scan/verify/fuerza y podas | tests/test-oraculo-map.sh (17 tests) | fuerte | 4f746d3 | init 2026-09-08 |
 | red.sh: veredicto de la ruta pelada (4 flags + atribuible) | tests/test-red.sh (1 tests) | fuerte | 0cb5355 | tarea e6-baseline-con-oraculo |
 | symbol-map.sh: mapa de símbolos | tests/test-symbol-map.sh (0 tests) | débil | 7a74852 | init 2026-09-08 |
+| descripciones públicas del plugin (`plugin.json`, `marketplace.json`, frontmatter de `skills/do/SKILL.md`) | tests/test-manifiestos.sh (0 tests) | débil | c64b785 | tarea descripciones-plugin-sin-capas |
 
 **Huecos conocidos (sin check ejecutable):**
+- que un cambio de descripción no toque NADA más de `skills/do/SKILL.md`: `tests/test-manifiestos.sh` lo cubre por sentinelas estructurales (H1, `"$ARGUMENTS"`, las nueve cabeceras de fase, las reglas duras — detecta truncado o pérdida de cuerpo), no por comparación exacta contra la versión previa: congelar el cuerpo haría fallar toda edición legítima futura del skill. La propiedad exacta se verificó por método alternativo, inspección del diff (`git diff -U0` mostró `@@ -2 +2 @@`: una sola línea) (tarea descripciones-plugin-sin-capas)
+- fuerza mecánica de los tests en bash: `oraculo-map.sh` cuenta declaraciones `it(`/`test(` y por eso reporta `0 tests · débil` para TODO test bash del repo (`test-hook.sh`, `test-symbol-map.sh`, `test-exploracion.sh`, `test-manifiestos.sh`), incluidos los que sí tienen aserciones reales; la columna `fuerza` de esas filas no es evidencia de debilidad real (tarea descripciones-plugin-sin-capas)
 - cierre de una retomada sin deuda de anomalías: las dos aserciones `**Anomalías pendientes:**` / `bifurcación: pendiente` de `tests/e6-retomar-lock.sh` solo se ejercitan corriendo ese escenario headless (cuesta); en la tarea que las agregó se verificaron por `bash -n` + inspección del diff, no por ejecución (tarea e6-baseline-con-oraculo)
 - que la suite `E1-E8` completa corra verde de punta a punta: `tests/test-run-scenarios.sh` verifica el CABLEADO estáticamente (bash -n + grep/awk), nunca la EJECUCIÓN — e8 dentro del orquestador y la tolerancia a `rc=2` no se observaron en vivo porque correr la suite cuesta tokens (tarea runner-suite-real)

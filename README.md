@@ -144,6 +144,7 @@ tests/test-oraculo-map.sh    # deterministic, free
 tests/test-symbol-map.sh     # deterministic, free
 tests/test-exploracion.sh    # deterministic, free
 tests/test-hook.sh           # deterministic, free
+tests/test-manifiestos.sh    # deterministic, free
 tests/run-scenarios.sh       # end-to-end: spawns real headless sessions
 ```
 
