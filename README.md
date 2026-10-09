@@ -70,7 +70,12 @@ Permanently, from inside a Claude Code session:
 
 It scans the repo, *runs* the build and test commands to verify they actually
 work, and writes a `.graph/` knowledge base: an index, a map of the code, the
-conventions it found, the verified commands, past decisions, and a task log.
+conventions it found, the verified commands, past decisions, a task log, and a
+`constitution.md` — the repo's red lines, which every later `/graph:do` carries
+as anti-criteria that override what you asked for, and which only you ever
+edit, never the system. It then asks exactly two questions: whether anything it
+understood or anything in that constitution needs correcting, and whether to
+commit `.graph/` or add it to `.gitignore`.
 Later sessions read this instead of rediscovering the repo every time.
 
 **Then, for any piece of work:**
@@ -145,6 +150,7 @@ tests/test-symbol-map.sh     # deterministic, free
 tests/test-exploracion.sh    # deterministic, free
 tests/test-hook.sh           # deterministic, free
 tests/test-manifiestos.sh    # deterministic, free
+tests/test-init-docs.sh      # deterministic, free
 tests/run-scenarios.sh       # end-to-end: spawns real headless sessions
 ```
 
